@@ -1,0 +1,2870 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="jp-ja">
+  <title>yutaka0m blog</title>
+  <subtitle>yutaka0mの主にエンジニアリングなブログです.</subtitle>
+  <id>https://tech.yutaka0m.com/</id>
+  <author>
+    <name>yutaka0m blog</name>
+    <uri>https://tech.yutaka0m.com/</uri>
+  </author>
+  <icon>https://tech.yutaka0m.com/image/brand/icon-1-1.jpg</icon>
+  <logo>https://tech.yutaka0m.com/image/brand/icon-2-1.jpg</logo>
+  <updated>2021-02-14T11:54:05Z</updated>
+  <link rel="self" type="application/atom+xml" href="https://tech.yutaka0m.com/feed.atom" hreflang="jp-ja"/>
+  <link rel="alternate" type="text/html" href="https://tech.yutaka0m.com/" hreflang="jp-ja"/>
+  <entry>
+    <title>Jenkinsのパラメータ付きビルドをGitHubActionsで実現する</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/2020/11/21/manual-github-actions/</id>
+    <updated>2020-11-21T00:00:00Z</updated>
+    <published>2020-11-21T00:00:00Z</published>
+    <content type="html"><![CDATA[<p>こんにちは、<a href="https://twitter.com/yutaka0m">yutaka0m</a> です。</p>
+<p>GitHubActionsで、Jenkinsの「パラメータ付きビルド」的なことができるようになったので試してみます。</p>
+<p>Jenkinsの「パラメータ付きビルド」とは、ビルドを実行するときにユーザーが任意の引数を与えることができる機能です。</p>
+<h2 id="actions-コード">Actions コード</h2>
+<p>引数に<code>name</code>を与えて、<code>Hello ${name}</code>と出力するサンプルコードです。</p>
+<p><code>.github/workflows/manual.yaml</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-yaml" data-lang="yaml"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2</span><span style="color:#66d9ef">name</span>: Manual workflow
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4</span><span style="color:#66d9ef">on</span>: 
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5</span>  <span style="color:#66d9ef">workflow_dispatch</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6</span>    <span style="color:#66d9ef">inputs</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7</span>      <span style="color:#66d9ef">name</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8</span>        <span style="color:#66d9ef">description</span>: <span style="color:#e6db74">&#39;name&#39;</span>     
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9</span>        <span style="color:#66d9ef">required</span>: <span style="color:#66d9ef">true</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10</span>        <span style="color:#66d9ef">default</span>: <span style="color:#e6db74">&#39;yutaka0m&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12</span><span style="color:#66d9ef">jobs</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13</span>  <span style="color:#66d9ef">printInputs</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14</span>    <span style="color:#66d9ef">runs-on</span>: ubuntu-latest
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16</span>    <span style="color:#66d9ef">steps</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17</span>      - <span style="color:#66d9ef">name</span>: hello
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18</span>        <span style="color:#66d9ef">run</span>: echo <span style="color:#e6db74">&#34;Hello ${{ github.event.inputs.name }}&#34;</span>
+</code></pre></div><p>記述したコードをGitHubのmainブランチにコミットしておきます。</p>
+<h2 id="パラメータ付きビルドを試す">パラメータ付きビルドを試す</h2>
+<p><img src="./2020112115156.png" alt=""></p>
+<p>Actionsの「Manual workflow」という項目を選択します。</p>
+<p><img src="./2020112115248.png" alt=""></p>
+<p>「Run workflow」をクリックすると、任意の引数を渡すことができます。
+この場合は、デフォルト値のまま「Run workflow」をクリックします。</p>
+<p><img src="./2020112115407.png" alt=""></p>
+<p>「All workflows」に戻ると、実行結果を確認できます。</p>
+<p><img src="./2020112115452.png" alt=""></p>
+<p><code>Hello yutaka0m</code>と出力されています。</p>
+<h2 id="参考">参考</h2>
+<ul>
+<li>https://github.blog/changelog/2020-07-06-github-actions-manual-triggers-with-workflow_dispatch/</li>
+</ul>]]></content>
+  </entry>
+  <entry>
+    <title>HUGOによるブログ公開をGitHubActionsで自動化する</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/2020/08/01/hugo-github-actions/</id>
+    <updated>2020-08-01T00:00:00Z</updated>
+    <published>2020-08-01T00:00:00Z</published>
+    <content type="html"><![CDATA[<p>こんにちは、<a href="https://twitter.com/yutaka0m">yutaka0m</a> です。</p>
+<p><a href="https://tech.yutaka0m.com/2020/07/25/wordpres-to-hugo/">前回の投稿</a> で「ブログをHUGOに移行しました」という記事を書きました。</p>
+<p>その中で実践した、「GitHubActionsを使ったブログ公開の自動化」をこの記事では紹介します。</p>
+<h2 id="やっていること">やっていること</h2>
+<p><img src="./20200801213906.png" alt=""></p>
+<p>masterブランチの変更でGitHubActionsを起動させ、次の処理を自動実行します。</p>
+<ol>
+<li>HUGOを使ってファイルを生成する</li>
+<li>生成されたファイルをS3にアップロードする</li>
+<li>CloudFrontのキャッシュをクリアする</li>
+</ol>
+<p>これによって、「Markdownを書いてGitHubにPushすれば、ブログは自動的に公開される」というワークフローをつくることができます。</p>
+<h2 id="準備">準備</h2>
+<h3 id="awsの準備">AWSの準備</h3>
+<p>GitHub ActionsからAWSのリソースにアクセスするため、GitHub Actions用のIAMユーザを作成して、アクセスキーとシークレットアクセスキーを取得します。</p>
+<p>アタッチするポリシーは次のとおりです。(<code>your-*</code>と書いてあるところは、自分のリソース情報に置き換えます)</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-json" data-lang="json"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1</span>{
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2</span>  <span style="color:#f92672">&#34;Version&#34;</span>: <span style="color:#e6db74">&#34;2012-10-17&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3</span>  <span style="color:#f92672">&#34;Statement&#34;</span>: [
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4</span>    {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5</span>      <span style="color:#f92672">&#34;Sid&#34;</span>: <span style="color:#e6db74">&#34;&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6</span>      <span style="color:#f92672">&#34;Effect&#34;</span>: <span style="color:#e6db74">&#34;Allow&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7</span>      <span style="color:#f92672">&#34;Action&#34;</span>: [
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8</span>        <span style="color:#e6db74">&#34;s3:PutObject&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9</span>        <span style="color:#e6db74">&#34;s3:ListBucket&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10</span>        <span style="color:#e6db74">&#34;s3:DeleteObject&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11</span>      ],
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12</span>      <span style="color:#f92672">&#34;Resource&#34;</span>: [
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13</span>        <span style="color:#e6db74">&#34;arn:aws:s3:::your-bucket-name/*&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14</span>        <span style="color:#e6db74">&#34;arn:aws:s3:::your-bucket-name&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15</span>      ]
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16</span>    },
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17</span>    {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18</span>      <span style="color:#f92672">&#34;Sid&#34;</span>: <span style="color:#e6db74">&#34;&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19</span>      <span style="color:#f92672">&#34;Effect&#34;</span>: <span style="color:#e6db74">&#34;Allow&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20</span>      <span style="color:#f92672">&#34;Action&#34;</span>: <span style="color:#e6db74">&#34;cloudfront:CreateInvalidation&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21</span>      <span style="color:#f92672">&#34;Resource&#34;</span>: <span style="color:#e6db74">&#34;arn:aws:cloudfront::your-account-id:distribution/your-distribution-id&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22</span>    }
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23</span>  ]
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24</span>}
+</code></pre></div><p>※必要なアクションとリソースのみ指定しましょう。</p>
+<h3 id="githubの準備">GitHubの準備</h3>
+<p><img src="./20200801215950.png" alt=""></p>
+<p>HUGOを管理しているGitHubリポジトリのシークレットに、次の項目を設定しておきます。</p>
+<ul>
+<li>キー: AWS_ACCESS_KEY_ID / 値: AWSアクセスキー</li>
+<li>キー: AWS_SECRET_ACCESS_KEY / 値: AWSシークレットアクセスキー</li>
+<li>キー: AWS_BUCKET_NAME / 値: HUGOで生成したファイルを配置するS3バケット名</li>
+<li>キー: AWS_DISTRIBUTION_ID / 値: CloudFrontのディストリビューションID</li>
+</ul>
+<h2 id="actionsコード">Actionsコード</h2>
+<p>最後に、GitHubActionsのコードです。</p>
+<p>コードの全体は次のとおりです。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-yaml" data-lang="yaml"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1</span><span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;AWS&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3</span><span style="color:#66d9ef">on</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4</span>  <span style="color:#66d9ef">push</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5</span>    <span style="color:#66d9ef">branches</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6</span>      - master
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8</span><span style="color:#66d9ef">jobs</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9</span>  <span style="color:#66d9ef">publish</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10</span>    <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Publish&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11</span>    <span style="color:#66d9ef">runs-on</span>: ubuntu-latest
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13</span>    <span style="color:#66d9ef">steps</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Checkout&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15</span>        <span style="color:#66d9ef">uses</span>: actions/checkout@master
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Configure AWS Credentials&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18</span>        <span style="color:#66d9ef">uses</span>: aws-actions/configure-aws-credentials@v1<span style="color:#ae81ff">.5.0</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19</span>        <span style="color:#66d9ef">with</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20</span>          <span style="color:#66d9ef">aws-access-key-id</span>: ${{ secrets.AWS_ACCESS_KEY_ID }}
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21</span>          <span style="color:#66d9ef">aws-secret-access-key</span>: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22</span>          <span style="color:#66d9ef">aws-region</span>: ap-northeast<span style="color:#ae81ff">-1</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Setup HUGO&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25</span>        <span style="color:#66d9ef">uses</span>: peaceiris/actions-hugo@v2<span style="color:#ae81ff">.4.12</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26</span>        <span style="color:#66d9ef">with</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27</span>          <span style="color:#66d9ef">hugo-version</span>: <span style="color:#e6db74">&#39;0.74.3&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Build HUGO&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30</span>        <span style="color:#66d9ef">run</span>: hugo
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Publish&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33</span>        <span style="color:#66d9ef">run</span>: aws s3 sync --exact-timestamps --delete public s3://${{ secrets.AWS_BUCKET_NAME }}/
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Clear cache&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36</span>        <span style="color:#66d9ef">run</span>: aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths <span style="color:#e6db74">&#34;/*&#34;</span>
+</code></pre></div><h3 id="補足説明">補足説明</h3>
+<p><a href="https://github.com/aws-actions/configure-aws-credentials">&quot;Configure AWS Credentials&quot; Action For GitHub Actions - GitHub</a> を使って、AWS CLIを使えるように認証情報とリージョンを設定します。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-yaml" data-lang="yaml"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Configure AWS Credentials&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2</span>        <span style="color:#66d9ef">uses</span>: aws-actions/configure-aws-credentials@v1<span style="color:#ae81ff">.5.0</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3</span>        <span style="color:#66d9ef">with</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4</span>          <span style="color:#66d9ef">aws-access-key-id</span>: ${{ secrets.AWS_ACCESS_KEY_ID }}
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5</span>          <span style="color:#66d9ef">aws-secret-access-key</span>: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6</span>          <span style="color:#66d9ef">aws-region</span>: ap-northeast<span style="color:#ae81ff">-1</span>
+</code></pre></div><p><a href="https://github.com/peaceiris/actions-hugo">GitHub Actions for Hugo - GitHub</a> で、GitHub ActionsでHUGOを使えるようにします。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-yaml" data-lang="yaml"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Setup HUGO&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2</span>        <span style="color:#66d9ef">uses</span>: peaceiris/actions-hugo@v2<span style="color:#ae81ff">.4.12</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3</span>        <span style="color:#66d9ef">with</span>:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4</span>          <span style="color:#66d9ef">hugo-version</span>: <span style="color:#e6db74">&#39;0.74.3&#39;</span>
+</code></pre></div><p>HUGOでブログ用の静的ファイルを生成します。ファイルは、<code>public</code>ディレクトリに生成されます。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-yaml" data-lang="yaml"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Build HUGO&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2</span>        <span style="color:#66d9ef">run</span>: hugo
+</code></pre></div><p>ブログ用の静的ファイルをS3にアップロードします。 <code>aws s3 sync</code>コマンドを使って、<code>public</code>フォルダを同期しています。(削除されたファイルは、S3からも削除される)</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-yaml" data-lang="yaml"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Publish&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2</span>        <span style="color:#66d9ef">run</span>: aws s3 sync --exact-timestamps --delete public s3://${{ secrets.AWS_BUCKET_NAME }}/
+</code></pre></div><p>CloudFrontのキャッシュをクリアします。(CloudFrontのキャッシュ期間が短い場合は、あえてキャッシュクリアをする必要はないかもしれません)</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-yaml" data-lang="yaml"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1</span>      - <span style="color:#66d9ef">name</span>: <span style="color:#e6db74">&#39;Clear cache&#39;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2</span>        <span style="color:#66d9ef">run</span>: aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_DISTRIBUTION_ID }} --paths <span style="color:#e6db74">&#34;/*&#34;</span>
+</code></pre></div><h2 id="おわりに">おわりに</h2>
+<p>GitHub ActionsでHUGOを使ったブログ公開を自動化する方法を説明しました。ご参考になれば幸いです。</p>]]></content>
+  </entry>
+  <entry>
+    <title>ブログをWordPressからHUGOに移行しました</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/2020/07/25/wordpres-to-hugo/</id>
+    <updated>2020-07-25T00:00:00Z</updated>
+    <published>2020-07-25T00:00:00Z</published>
+    <content type="html"><![CDATA[<p>2019年末からWordPressでブログを運営していましたが、管理の手間とコスト削減のために、別の技術を使って作り替えることとしました。</p>
+<h2 id="当初の目的">当初の目的</h2>
+<p>元々は、「AWSの勉強をするため」にブログを構築した。という経緯がありました。</p>
+<p><code>EC2</code>、<code>RDS</code>、<code>CloudFront</code>等の技術を学ぶのにちょうどよかったと思っています。</p>
+<h2 id="課題は管理コスト">課題は管理コスト</h2>
+<p>WordPress自体のアップデートやブラグインのアップデートを実施し、さらにOSパッチも定期的に適用していました。</p>
+<p>最近は「AWSの勉強も十分できたし、管理に手間がかかるのは面倒だ」と考えるようになりました。</p>
+<h2 id="サーバレスな環境に移行">サーバレスな環境に移行</h2>
+<p>ブログの執筆はMarkdownで記述して、WordPressに貼り付けるだけ。というワークフローだったので、そもそもリッチなCMSは不要でした。</p>
+<p>そこで、HUGOを使って静的なWebページを作成し、それをサーバレスな環境で配信することとしました。</p>
+<h2 id="移行で使用したツール">移行で使用したツール</h2>
+<h3 id="hugo">HUGO</h3>
+<p>Markdownで記述した記事を静的ページに変換してくれるツールです。</p>
+<ul>
+<li><a href="https://gohugo.io/">HUGO</a></li>
+</ul>
+<h3 id="aws">AWS</h3>
+<p>HUGOで生成したHTML等はAWSの<code>S3</code>に配置します。
+それを<code>CloudFront</code>から配信しています。</p>
+<p>また、<code>index.html</code>を省略したアクセスにはCloudFrontは対応していないので、<code>Lambda@Edge</code>を使い、リクエストされたURLに<code>index.html</code>を追加する処理をしています。</p>
+<h3 id="エクスポートツール">エクスポートツール</h3>
+<p>WordPressの記事データをHUGOのフォーマットでエクスポートするために、次のツールを使用しました。</p>
+<ul>
+<li><a href="https://github.com/SchumacherFM/wordpress-to-hugo-exporter">wordpress-to-hugo-exporter</a></li>
+</ul>
+<h3 id="hugoテーマ">HUGOテーマ</h3>
+<p>HUGOテーマは「axiom」を使用しています。いろいろ試しましたが、このテーマはしっかり作り込まれていて、モバイル対応もしているので採用しました。</p>
+<ul>
+<li><a href="https://github.com/marketempower/axiom">axiom</a></li>
+</ul>
+<h3 id="githubactions">GitHubActions</h3>
+<p>執筆した記事をGitHubにpushすると、<code>S3</code>に記事をアップロードし、<code>CloudFront</code>のキャッシュをクリアする。という一連の処理をGitHubActionsで実現しています。</p>
+<h3 id="おわりに">おわりに</h3>
+<p>サーバ保守に時間をかける必要がなくなったので、これからは積極的にブログを更新していきたいです。</p>]]></content>
+  </entry>
+  <entry>
+    <title>イトーキのSALIDA（サリダ）YL7を買いました</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/06/14/334/</id>
+    <updated>2020-06-14T06:54:46Z</updated>
+    <published>2020-06-14T06:54:46Z</published>
+    <content type="html"><![CDATA[<p><a href="https://twitter.com/yutaka0m">@yutaka0m</a>です。</p>
+<p>2020年6月、在宅勤務(テレワーク)用にオフィスチェアを買いました。</p>
+<p>イトーキのSALIDA（サリダ）YL7です。</p>
+<p><img src="https://resources.yutaka0m.com/20200614155107.png" alt=""></p>
+<p>椅子を選んだ理由と、組み立て、座り心地などについてまとめます。</p>
+<h2 id="salidaシリーズの比較表">SALIDAシリーズの比較表</h2>
+<p>イトーキのSALIDAシリーズは、2020年6月現在、次のようなラインナップになっています。(かっこは参考価格)</p>
+<ul>
+<li>YL2 (¥11,990)</li>
+<li>YL5 (¥13,200)</li>
+<li>YL6 (¥22,900)</li>
+<li>YL7 (¥34,900)</li>
+<li>YL8 (¥32,900)</li>
+<li>YL9 (¥39,900)</li>
+</ul>
+<p>3万台のハイエンドモデルを比較すると次のようになります。</p>
+<table>
+<thead>
+<tr>
+<th align="center">機能</th>
+<th align="center">YL7</th>
+<th align="center">YL8</th>
+<th align="center">YL9</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">発売日</td>
+<td align="center">2020/06</td>
+<td align="center">2019/08</td>
+<td align="center">2019/05</td>
+</tr>
+<tr>
+<td align="center">背もたれ材質</td>
+<td align="center">メッシュ</td>
+<td align="center">メッシュ</td>
+<td align="center">エラストマー樹脂</td>
+</tr>
+<tr>
+<td align="center">キャスター</td>
+<td align="center">ナイロン双輪</td>
+<td align="center">ナイロン双輪</td>
+<td align="center">ナイロン双輪</td>
+</tr>
+<tr>
+<td align="center">脚　</td>
+<td align="center">ガラス繊維強化ナイロン　</td>
+<td align="center">ガラス繊維強化ナイロン</td>
+<td align="center">アルミ</td>
+</tr>
+<tr>
+<td align="center">ランバーサポート</td>
+<td align="center">●　</td>
+<td align="center">●</td>
+<td align="center"></td>
+</tr>
+<tr>
+<td align="center">自動ロッキング</td>
+<td align="center">●　</td>
+<td align="center">●</td>
+<td align="center">●</td>
+</tr>
+<tr>
+<td align="center">座面の高さ調整</td>
+<td align="center">●　</td>
+<td align="center">●</td>
+<td align="center">●</td>
+</tr>
+<tr>
+<td align="center">座面の奥行調整</td>
+<td align="center">　</td>
+<td align="center">●</td>
+<td align="center">●</td>
+</tr>
+<tr>
+<td align="center">肘掛け高さ調整</td>
+<td align="center">●　</td>
+<td align="center">●</td>
+<td align="center">●</td>
+</tr>
+<tr>
+<td align="center">肘掛けの左右角度調節</td>
+<td align="center">●　</td>
+<td align="center"></td>
+<td></td>
+</tr>
+<tr>
+<td align="center">肘掛けの前後調節</td>
+<td align="center">●　</td>
+<td align="center"></td>
+<td align="center"></td>
+</tr>
+<tr>
+<td align="center">ヘッドレスト高さ調整</td>
+<td align="center">●　</td>
+<td align="center">●</td>
+<td align="center">●</td>
+</tr>
+<tr>
+<td align="center">ヘッドレスト上下首振り</td>
+<td align="center">　</td>
+<td align="center">●</td>
+<td align="center">●</td>
+</tr>
+</tbody>
+</table>
+<h3 id="yl7">YL7</h3>
+<p><a href="https://www.amazon.co.jp/%E3%82%A4%E3%83%88%E3%83%BC%E3%82%AD-%E3%82%AA%E3%83%95%E3%82%A3%E3%82%B9%E3%83%81%E3%82%A7%E3%82%A2-%E3%82%A8%E3%82%AF%E3%82%B9%E3%83%88%E3%83%A9%E3%83%8F%E3%82%A4%E3%83%90%E3%83%83%E3%82%AF-%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF-YL7-BK-AEL/dp/B0874W412Y/ref=as_li_ss_il?ie=UTF8&#038;linkCode=li2&#038;tag=yutaka0mads-22&#038;linkId=622aea9964eefa4c25d013fc72af1afe&#038;language=ja_JP" target="_blank" rel="noopener noreferrer"><img border="0" src="//ws-fe.amazon-adsystem.com/widgets/q?_encoding=UTF8&#038;ASIN=B0874W412Y&#038;Format=_SL160_&#038;ID=AsinImage&#038;MarketPlace=JP&#038;ServiceVersion=20070822&#038;WS=1&#038;tag=yutaka0mads-22&#038;language=ja_JP" /></a><img src="https://ir-jp.amazon-adsystem.com/e/ir?t=yutaka0mads-22&#038;language=ja_JP&#038;l=li2&#038;o=9&#038;a=B0874W412Y" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /></p>
+<h3 id="yl8">YL8</h3>
+<p><a href="https://www.amazon.co.jp/%E3%82%A4%E3%83%88%E3%83%BC%E3%82%AD-%E3%82%AA%E3%83%95%E3%82%A3%E3%82%B9%E3%83%81%E3%82%A7%E3%82%A2-YL8-GRBL-AEL-%E3%82%A2%E3%82%B8%E3%83%A3%E3%82%B9%E3%82%BF%E3%83%96%E3%83%AB%E8%82%98%E4%BB%98-%E3%82%B0%E3%83%AC%E3%83%BC%C3%97%E3%83%96%E3%83%A9%E3%83%83%E3%82%AF/dp/B07FCYCXDF/ref=as_li_ss_il?_encoding=UTF8&#038;pd_rd_i=B07FCYCXDF&#038;pd_rd_r=060d6790-a21d-4622-a616-7a0618e07381&#038;pd_rd_w=CIjzV&#038;pd_rd_wg=GTzKO&#038;pf_rd_p=4b55d259-ebf0-4306-905a-7762d1b93740&#038;pf_rd_r=DAXA3CA8F4RD8WYMYQ4J&#038;psc=1&#038;refRID=DAXA3CA8F4RD8WYMYQ4J&#038;linkCode=li2&#038;tag=yutaka0mads-22&#038;linkId=3012cb961a65af3ef75b66ce89d6c54b&#038;language=ja_JP" target="_blank" rel="noopener noreferrer"><img border="0" src="//ws-fe.amazon-adsystem.com/widgets/q?_encoding=UTF8&#038;ASIN=B07FCYCXDF&#038;Format=_SL160_&#038;ID=AsinImage&#038;MarketPlace=JP&#038;ServiceVersion=20070822&#038;WS=1&#038;tag=yutaka0mads-22&#038;language=ja_JP" /></a><img src="https://ir-jp.amazon-adsystem.com/e/ir?t=yutaka0mads-22&#038;language=ja_JP&#038;l=li2&#038;o=9&#038;a=B07FCYCXDF" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /></p>
+<h3 id="yl9">YL9</h3>
+<p><a href="https://www.amazon.co.jp/%E3%82%A4%E3%83%88%E3%83%BC%E3%82%AD-%E3%82%AA%E3%83%95%E3%82%A3%E3%82%B9%E3%83%81%E3%82%A7%E3%82%A2-YL9-WHEL-%E3%83%8F%E3%82%A4%E3%83%90%E3%83%83%E3%82%AF-%E3%83%9B%E3%83%AF%E3%82%A4%E3%83%88/dp/B07RQSN6QK/ref=as_li_ss_il?_encoding=UTF8&#038;pd_rd_i=B07RWMN2DG&#038;pd_rd_r=060d6790-a21d-4622-a616-7a0618e07381&#038;pd_rd_w=CIjzV&#038;pd_rd_wg=GTzKO&#038;pf_rd_p=4b55d259-ebf0-4306-905a-7762d1b93740&#038;pf_rd_r=DAXA3CA8F4RD8WYMYQ4J&#038;refRID=DAXA3CA8F4RD8WYMYQ4J&#038;th=1&#038;linkCode=li2&#038;tag=yutaka0mads-22&#038;linkId=d9550947f2fab9766d99ffcc6031ade4&#038;language=ja_JP" target="_blank" rel="noopener noreferrer"><img border="0" src="//ws-fe.amazon-adsystem.com/widgets/q?_encoding=UTF8&#038;ASIN=B07RQSN6QK&#038;Format=_SL160_&#038;ID=AsinImage&#038;MarketPlace=JP&#038;ServiceVersion=20070822&#038;WS=1&#038;tag=yutaka0mads-22&#038;language=ja_JP" /></a><img src="https://ir-jp.amazon-adsystem.com/e/ir?t=yutaka0mads-22&#038;language=ja_JP&#038;l=li2&#038;o=9&#038;a=B07RQSN6QK" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /></p>
+<h2 id="なぜyl7を選んだか">なぜYL7を選んだか？</h2>
+<p>まとめると、次のような判断基準かと思います。</p>
+<ul>
+<li>スタイリッシュな椅子がいい -&gt; YL9</li>
+<li>肘掛けの調節機能が豊富な方がいい -&gt; YL7</li>
+<li>座面の奥行き、ヘッドレストの上下首振り機能が欲しい -&gt; YL8</li>
+</ul>
+<p>私は、肘掛の調整機能が豊富な方がいいので、YL7をチョイスしました。</p>
+<h2 id="組み立て">組み立て</h2>
+<p>椅子の組み立てには、40分弱かかりました。説明書とりに組み立てるだけなので、特に難しいことはありませんでした。</p>
+<p>キャスターは「ナイロン」のものがついています。フローリングで使うと傷がつくので、付属のキャスターは使わずに「ウレタン」のものを使うのをオススメします。</p>
+<p><img src="https://resources.yutaka0m.com/20200614155032.png" alt=""> 　　　　　　</p>
+<h2 id="yl7の座り心地">YL7の座り心地</h2>
+<p>座り心地、最高です!!</p>
+<p>自動ロッキング機能のおかげで、背もたれにもたれかかると自動で倒れてくれるので、とてもリラックスできます。</p>
+<p>肘掛けの左右調整機能もとても便利です。デスクワークをするときは、腕をハの字にしているので、それに合わせて肘掛を内向きできるので快適です。</p>
+<h2 id="おわりに">おわりに</h2>
+<p>今まで、適当な椅子に座って作業したいたので、とても快適になりました。</p>
+<p>ありがとイトーキさん。</p>]]></content>
+  </entry>
+  <entry>
+    <title>Terraform v0.13.0 ベータリリースを試す</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/06/08/332/</id>
+    <updated>2020-06-08T08:22:56Z</updated>
+    <published>2020-06-08T08:22:56Z</published>
+    <content type="html"><![CDATA[<p>2020/06/02にTerraform <a href="https://github.com/hashicorp/terraform/releases/tag/v0.13.0-beta1">v0.13.0-beta1</a>がリリースされました。</p>
+<p>新しい機能をいくつか試してみたいと思います。</p>
+<h2 id="modulesでcountを使う">modulesでcountを使う</h2>
+<p><code>modules</code>で<code>count</code>が使えるようになりました。</p>
+<p>まずは、サンプルのモジュールを作成します。</p>
+<p><code>./sample-module/main.tf</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-hcl" data-lang="hcl"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1</span><span style="color:#66d9ef">variable</span> <span style="color:#e6db74">&#34;sample_text&#34;</span> {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2</span>  type        <span style="color:#f92672">=</span> <span style="color:#66d9ef">string</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">3</span>  description <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Sample text&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">4</span>}
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">5</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">6</span><span style="color:#66d9ef">output</span> <span style="color:#e6db74">&#34;sample_text&#34;</span> {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">7</span>  value       <span style="color:#f92672">=</span> <span style="color:#66d9ef">var</span>.<span style="color:#66d9ef">sample_text</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">8</span>  description <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Sample text&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">9</span>}
+</code></pre></div><p>文字列を受け取っと、同じ文字列を返すだけのモジュールです。</p>
+<p>このモジュールを使って、<code>count</code>をテストします。</p>
+<p><code>sample.tf</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-hcl" data-lang="hcl"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1</span><span style="color:#66d9ef">locals</span> {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2</span>  texts <span style="color:#f92672">=</span> [
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3</span>    <span style="color:#e6db74">&#34;01&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4</span>    <span style="color:#e6db74">&#34;02&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5</span>    <span style="color:#e6db74">&#34;03&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6</span>    <span style="color:#e6db74">&#34;04&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7</span>    <span style="color:#e6db74">&#34;05&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8</span>  ]
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9</span>}
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11</span><span style="color:#66d9ef">module</span> <span style="color:#e6db74">&#34;count_test&#34;</span> {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12</span>  count <span style="color:#f92672">=</span> <span style="color:#66d9ef">length</span>(<span style="color:#66d9ef">local</span>.<span style="color:#66d9ef">texts</span>)
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14</span>  source <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;./sample-module&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16</span>  sample_text <span style="color:#f92672">=</span> <span style="color:#66d9ef">element</span>(<span style="color:#66d9ef">local</span>.<span style="color:#66d9ef">texts</span>, <span style="color:#66d9ef">count</span>.<span style="color:#66d9ef">index</span>)
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17</span>}
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19</span><span style="color:#66d9ef">output</span> <span style="color:#e6db74">&#34;sample_texts&#34;</span> {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20</span>  value <span style="color:#f92672">=</span> <span style="color:#66d9ef">module</span>.<span style="color:#66d9ef">count_test</span>[<span style="color:#960050;background-color:#1e0010">*</span>].<span style="color:#66d9ef">sample_text</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21</span>}
+</code></pre></div><p>applyすると次のように出力されます。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-zsh" data-lang="zsh"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1</span>Apply complete! Resources: <span style="color:#ae81ff">0</span> added, <span style="color:#ae81ff">0</span> changed, <span style="color:#ae81ff">0</span> destroyed.
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3</span>Outputs:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5</span>sample_texts <span style="color:#f92672">=</span> <span style="color:#f92672">[</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6</span>  <span style="color:#e6db74">&#34;01&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7</span>  <span style="color:#e6db74">&#34;02&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8</span>  <span style="color:#e6db74">&#34;03&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9</span>  <span style="color:#e6db74">&#34;04&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10</span>  <span style="color:#e6db74">&#34;05&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11</span><span style="color:#f92672">]</span>
+</code></pre></div><p>moduleに<code>count</code>を定義できるようになって、複数のリソースをまとめて作成できるようになりました。便利！</p>
+<h2 id="modulesでdepends_onを使う">modulesでdepends_onを使う</h2>
+<p>続いて、<code>modules</code>で<code>depends_on</code>が使えるようになりました。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-hcl" data-lang="hcl"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1</span><span style="color:#66d9ef">module</span> <span style="color:#e6db74">&#34;depends_on_test_01&#34;</span> {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2</span>  source <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;./sample-module&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4</span>  sample_text <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;sample_01&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5</span>}
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7</span><span style="color:#66d9ef">module</span> <span style="color:#e6db74">&#34;depends_on_test_02&#34;</span> {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8</span>  source <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;./sample-module&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10</span>  sample_text <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;sample_02&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12</span>  depends_on <span style="color:#f92672">=</span> [<span style="color:#66d9ef">module</span>.<span style="color:#66d9ef">depends_on_test_01</span>]
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13</span>}
+</code></pre></div><p>「リソースとmoduleの依存が制御できなくてエラーになる」というシチュエーションがあったので、使える機能になると思います。</p>
+<h2 id="おわりに">おわりに</h2>
+<p>Terraform v0.13.0-beta1 の新しい機能を2つ紹介しました。</p>
+<p>ベータプログラムが終了して、各モジュールの<code>0.13</code>対応が進んできたら<code>0.12</code>から移行したいですね。</p>]]></content>
+  </entry>
+  <entry>
+    <title>GitHub ActionsでPRの差分ファイルだけテストする方法</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/05/30/327/</id>
+    <updated>2020-05-30T06:43:06Z</updated>
+    <published>2020-05-30T06:43:06Z</published>
+    <content type="html"><![CDATA[<p><a href="https://twitter.com/yutaka0m">@yutaka0m</a>です。</p>
+<p>GitHub ActionsでPR(プルリクエスト)の差分ファイルだけをCI(テスト)したい場合のサンプルコードです。</p>
+<h2 id="サンプルコード">サンプルコード</h2>
+<p>例 : javaファイルのテストをしたい場合。</p>
+<pre><code class="language-yaml">name: Test
+
+on:
+  pull_request:
+    paths:
+      - &#039;**.java&#039;
+
+env:
+  # プルリクエストのターゲットブランチ
+  TARGET_BRANCH: ${{ github.base_ref }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: &#039;Checkout&#039;
+        uses: actions/checkout@v2
+
+      # git diffをするためにターゲットブランチをフェッチする
+      - name: &#039;Fetch&#039;
+        run: git fetch --depth 1 origin ${TARGET_BRANCH}
+
+      - name: &#039;echo&#039;
+        run: |
+          # ターゲットブランチとHEAD間で、追加,変更されたjavaファイルのパスを取得してループ処理
+          for file in $(git diff origin/${TARGET_BRANCH} HEAD --diff-filter=AM --name-only -- "*.java") ; do
+            # ここで任意の処理をする
+            echo ${file}
+          done</code></pre>
+<h2 id="おわりに">おわりに</h2>
+<pre><code class="language-yaml">run: git fetch --depth 1 origin ${TARGET_BRANCH}</code></pre>
+<p>をやらないと、<code>git diff</code>が取れないので、必ず実施する必要があります。</p>
+<p>おしまい。</p>]]></content>
+  </entry>
+  <entry>
+    <title>GitHub ActionsでHomebrewを使うコツ</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/05/27/324/</id>
+    <updated>2020-05-27T08:07:41Z</updated>
+    <published>2020-05-27T08:07:41Z</published>
+    <content type="html"><![CDATA[<p><a href="https://twitter.com/yutaka0m">@yutaka0m</a>です。</p>
+<p>GitHub ActionsのUbuntu-18.04には、<code>Homebrew on Linux</code>がインストール済なので、<code>brew install</code>などのコマンドを簡単に使うことができます。</p>
+<p>ただし普通に使うと、すごく時間がかかるので注意が必要！</p>
+<h2 id="普通にbrew-installしてみる">普通にbrew installしてみる</h2>
+<p>適当にbrew installするGitHub Actionsを書いてみます。</p>
+<pre><code class="language-yaml">name: &#039;Test&#039;
+
+on:
+  pull_request:
+    paths:
+      - &#039;**.tf&#039;
+
+jobs:
+  terraform:
+    name: &#039;Lint&#039;
+    runs-on: ubuntu-latest
+    steps:
+      - name: &#039;Checkout&#039;
+        uses: actions/checkout@master
+
+      - name: &#039;Setup tflint&#039;
+        run: brew install tflint
+
+      - name: &#039;Check tflint&#039;
+        run: tflint ./terraform/dev</code></pre>
+<p>アクションが起動すると、該当のパッケージをインストールする前に<code>Updating Homebrew</code>が動作します。<br>
+これは、インストール済みのパッケージを自動でアップデートしてくる機能です。</p>
+<p><img src="https://resources.yutaka0m.com/20200527155749.png" alt=""></p>
+<p>終了まで60秒かかっており、その大半がアップデートです。</p>
+<p>GitHub Actionsではコンテナを使い捨てるので、使う予定のないパッケージをアップデートする意味はありません。</p>
+<h2 id="改善されたbrew-install">改善されたbrew install</h2>
+<p>今度は、<code>HOMEBREW_NO_AUTO_UPDATE=1</code>をセットして、<code>Updating Homebrew</code>を実施しないように修正します。</p>
+<pre><code class="language-yaml">name: &#039;Test&#039;
+
+on:
+  pull_request:
+    paths:
+      - &#039;**.tf&#039;
+
+jobs:
+  terraform:
+    name: &#039;Lint&#039;
+    runs-on: ubuntu-latest
+    steps:
+      - name: &#039;Checkout&#039;
+        uses: actions/checkout@master
+
+      - name: &#039;Setup tflint&#039;
+        run: HOMEBREW_NO_AUTO_UPDATE=1 brew install tflint
+
+      - name: &#039;Check tflint&#039;
+        run: tflint ./terraform/dev</code></pre>
+<p>この状態で、再度Actionsを起動します。</p>
+<p><img src="https://resources.yutaka0m.com/20200527155944.png" alt=""></p>
+<p>必要なパッケージのインストールしか実行しないので、<code>brew install</code>が早く終了します。</p>
+<h2 id="まとめ">まとめ</h2>
+<p><code>HOMEBREW_NO_AUTO_UPDATE=1</code>を設定するだけで、60秒かかっていたアクションが15秒に短縮されました。</p>
+<p>GitHub Actionsでbrewコマンド使う際は、<code>HOMEBREW_NO_AUTO_UPDATE=1</code>を忘れずに設定しましょう。</p>
+<p>おしまい。</p>]]></content>
+  </entry>
+  <entry>
+    <title>Checkov &#43; GitHubActionsでTerraform静的セキュリティチェックをする</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/05/07/319/</id>
+    <updated>2020-05-07T13:16:07Z</updated>
+    <published>2020-05-07T13:16:07Z</published>
+    <content type="html"><![CDATA[<p><a href="https://github.com/bridgecrewio/checkov">Checkov</a>は、TerraformまたはCloudformationのための静的セキュリティ解析ツールです。</p>
+<p>Pythonで記述されているため、<code>pip install checkov</code>でインストールし、CLIとして実行が可能です。</p>
+<p>毎度ローカルで実行するのも手間なので、<code>GitHubActions</code>を使い、プルリクエストのたびにセキュリティチェックを実施するサンプルを作成していきます。</p>
+<h2 id="actionの定義">Actionの定義</h2>
+<p>GitHubリポジトリで、<code>Actions</code> -&gt; <code>Set up a workflow yourself</code>を選択すると、GitHub Actionsの編集画面が表示されます。</p>
+<p><img src="https://resources.yutaka0m.com/20200317163616.png" alt=""></p>
+<p>エディタに次のコードを書き、保存します。</p>
+<p><code>checkov.yaml</code></p>
+<pre><code class="language-yaml">name: Checkov
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Checkov Github Action
+        uses: bridgecrewio/checkov-action@v9
+        with:
+          # 解析するディレクトリを指定
+          directory: .</code></pre>
+<h2 id="検証">検証</h2>
+<p>続いて、設定したActionを検証します。</p>
+<p>次のようなTerraform(hcl)を記述し、プルリクエストを出します。</p>
+<p><code>s3.tf</code></p>
+<pre><code class="language-json">resource "aws_s3_bucket" "foo-bucket" {
+  bucket        = "test-checkov"
+  force_destroy = true
+  acl           = "public-read"
+}</code></pre>
+<p>すると、先ほどのActionが実行され「失敗」します。<br>
+<img src="https://resources.yutaka0m.com/20200507214648.png" alt=""></p>
+<p>Detailsを見ると、6つのチェックが実行され、うち5つに失敗していることがわかります。</p>
+<p><img src="https://resources.yutaka0m.com/20200507214840.png" alt=""></p>
+<p>たとえば、<br>
+<code>Check: CKV_AWS_20: &quot;S3 Bucket has an ACL defined which allows public READ access.&quot;</code>というチェックに失敗しています。<br>
+「Faild」が0件になるまで、指示どおりにTerraformを修正していけばOKです。</p>
+<p>「やむを得ずS3をパブリックに公開する」場合などは、<a href="https://github.com/bridgecrewio/checkov#suppressingignoring-a-check">Suppressing/Ignoring a check – Checkov</a>にならってコメントを書けば、Checkを省略してくれます。</p>
+<h2 id="まとめ">まとめ</h2>
+<p><code>Checkov</code>そして<code>Checkov Github Action</code>を使ったTerraformの静的セキュリティチェックのサンプルでした。</p>
+<p>すごく便利！</p>]]></content>
+  </entry>
+  <entry>
+    <title>Terraform / AWS IAM サービスロールを作成するモジュールを公開しました</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/05/03/317/</id>
+    <updated>2020-05-03T05:49:05Z</updated>
+    <published>2020-05-03T05:49:05Z</published>
+    <content type="html"><![CDATA[<p>AWS IAM サービスロールを作成するTerraformモジュールを公開しました。</p>
+<p><a href="https://registry.terraform.io/modules/yutaka0m/service-role/aws">https://registry.terraform.io/modules/yutaka0m/service-role/aws</a></p>
+<p>IAMロールの作成、ポリシーの作成、ポリシーのアタッチ、AWS管理ポリシーのアタッチまで1つのモジュール内で完結できるようになります。</p>]]></content>
+  </entry>
+  <entry>
+    <title>本  /「AWS IAMのマニアックな話」 を読みました</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/04/25/308/</id>
+    <updated>2020-04-25T11:25:31Z</updated>
+    <published>2020-04-25T11:25:31Z</published>
+    <content type="html"><![CDATA[<p>AWSのIAMについて詳しく書いてある本があったので読んでみました。<br>
+とても参考になる、いい本でした！</p>
+<h2 id="iamちょっと分かる人になれる">IAMちょっと分かる人になれる</h2>
+<p>IAMについて調べていると、</p>
+<ul>
+<li>IAMユーザー</li>
+<li>IAMグループ</li>
+<li>IAMポリシー</li>
+<li>IAMロール</li>
+<li>AWSアカウント</li>
+<li>AWS管理ポリシー</li>
+<li>カスタマー管理ポリシー</li>
+</ul>
+<p>など、様々な似たような単語が出てきてよく分からないことになります。これらの意味をちゃんと理解していないと、リファレンスを読むのも辛いです。</p>
+<p>この本では、第1章から第2章にわたって、これらの単語の意味について分かりやすく解説が書かれていました。</p>
+<p>１~2章を読むだけでもIAMについて、<code>ぜんぜん分からない</code>が<code>ちょっと分かる</code>くらいには進歩できました。</p>
+<h2 id="iamアンチパターンの理由を知っていますか">IAMアンチパターンの理由を知っていますか？</h2>
+<ul>
+<li>なぜルートユーザで操作してはいけないのか？</li>
+<li>アカウントの使い回しはなぜNGなのか?</li>
+<li>なぜ権限を制限しなければいけないのか?</li>
+</ul>
+<p>IAMについて調べていると、「アンチパターン」はよく出てきますが、それが「なぜなのか？」がよく分からないということがあります。</p>
+<p>この本では、アンチパターンがなぜダメのなのか?ついても詳しく書いてあり、理解が深まりました。</p>
+<h2 id="さあやってみよう">さあ、やってみよう！</h2>
+<p>読み進めると、単語が理解できるようになるので、次は実践です。<br>
+私も、本書を見ながら色々なパターンのIAM設定をやってみました。</p>
+<p>この本には、<code>一人でAWSを使う人用</code>, <code>ネットワーク管理者用</code>, <code>開発者用</code>等のIAMの設定パターンが示されています。<br>
+また、IAM設定を<code>CloudFormation</code>で実現する場合のサンプルコードもダウンロードできるので、非常に参考になりました。</p>
+<h2 id="どのような人にオススメの本か">どのような人にオススメの本か?</h2>
+<p>企業でAWS導入にあたり、適切な権限管理をおこないたいけど、正直IAMよく分からない。と思っている方にオススメです。</p>
+<p>または、権限を特に気にしないで使っている個人ユーザも、１度目を通せば最低限のIAMの設定ができるようになります。</p>
+<p>AWS IAMについてよく理解するには、とてもよい本だと思いました。</p>]]></content>
+  </entry>
+  <entry>
+    <title>TerraformでEBS データライフサイクルマネージャーを適用する</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/04/24/293/</id>
+    <updated>2020-04-24T01:52:40Z</updated>
+    <published>2020-04-24T01:52:40Z</published>
+    <content type="html"><![CDATA[<p>EC2のEBSを定期的にバックアップするには、<a href="https://docs.aws.amazon.com/ja_jp/AWSEC2/latest/UserGuide/snapshot-lifecycle.html">EBS データライフサイクルマネージャー</a>を使うと便利です。指定した間隔、指定した時間に自動でスナップショットを作成してくれます。</p>
+<p>このEBS データライフサイクルマネージャーをTerraformで管理するには、<a href="https://www.terraform.io/docs/providers/aws/r/dlm_lifecycle_policy.html">Resource: aws_dlm_lifecycle_policy</a>を使用します。</p>
+<p>ほぼexampleのとおりなのですが、Terraformで実装したサンプルコードを次に示します。</p>
+<h2 id="roleとポリシー">Roleとポリシー</h2>
+<pre><code class="language-json">resource "aws_iam_role" "dlm_lifecycle_role" {
+  name = "dlm-lifecycle-role"
+
+  assume_role_policy = &lt;&lt;EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "dlm.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "dlm_lifecycle" {
+  name = "dlm-lifecycle-policy"
+  role = aws_iam_role.dlm_lifecycle_role.id
+
+  policy = &lt;&lt;EOF
+{
+   "Version": "2012-10-17",
+   "Statement": [
+      {
+         "Effect": "Allow",
+         "Action": [
+            "ec2:CreateSnapshot",
+            "ec2:DeleteSnapshot",
+            "ec2:DescribeVolumes",
+            "ec2:DescribeSnapshots"
+         ],
+         "Resource": "*"
+      },
+      {
+         "Effect": "Allow",
+         "Action": [
+            "ec2:CreateTags"
+         ],
+         "Resource": "arn:aws:ec2:*::snapshot/*"
+      }
+   ]
+}
+EOF
+}</code></pre>
+<h2 id="ebs-データライフサイクルマネージャー">EBS データライフサイクルマネージャー</h2>
+<p>24時間ごとに７世代のスナップショットを取得する例です。</p>
+<pre><code class="language-json">###################
+# EBS データライフサイクルマネージャー
+###################
+resource "aws_dlm_lifecycle_policy" "this" {
+  description        = "DLM lifecycle policy"
+  execution_role_arn = aws_iam_role.dlm_lifecycle_role.arn
+  state              = "ENABLED"
+
+  policy_details {
+    resource_types = ["VOLUME"]
+
+    schedule {
+      name = "Daily snapshots"
+
+      create_rule {
+        interval      = 24
+        interval_unit = "HOURS"
+        times         = ["17:00"] // UTC
+      }
+
+      retain_rule {
+        # 保持しておきたいスナップショットの数
+        # この数を超えた最も古いスナップショットは削除の対象になります
+        count = 7
+      }
+
+      tags_to_add = {
+        SnapshotCreator = "DLM"
+      }
+
+      copy_tags = true
+    }
+
+    # 次の指定したタグを持つEBSボリュームに適用されます
+    target_tags = {
+      Snapshot = "true"
+    }
+  }
+}</code></pre>
+<h2 id="ebsの設定">EBSの設定</h2>
+<p>スナップショットをとりたいEBSボリュームのタグに<code>キー:Snapshot</code>, <code>値:true</code>と登録すればOKです。</p>]]></content>
+  </entry>
+  <entry>
+    <title>Java / HashMap＜A, B＞ を HashMap＜C, D＞ に変換するStream (Mapの型変換)</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/04/21/233/</id>
+    <updated>2020-04-20T23:14:32Z</updated>
+    <published>2020-04-20T23:14:32Z</published>
+    <content type="html"><![CDATA[<p>ある日、こんなことがしたくなりました。</p>
+<p>次のような、<code>Map&lt;String, String&gt;</code>があります。</p>
+<pre><code class="language-java">Map&lt;String, String&gt; stringStringMap = new HashMap&lt;&gt;();
+        stringStringMap.put("1", "1");</code></pre>
+<p>これをどうしても、<code>Map&lt;String, String&gt;</code> -&gt; <code>Map&lt;Integer, Integer&gt;</code>にtype conversionしたくなったのです。</p>
+<h2 id="for文で愚直に変換する">for文で愚直に変換する</h2>
+<p>Forループを使って変換するには、次のように実装できます。</p>
+<pre><code class="language-java">Map&lt;Integer, Integer&gt; integerIntegerMap = new HashMap&lt;&gt;();
+        for (Map.Entry&lt;String, String&gt; e : stringStringMap.entrySet()) {
+            if (integerIntegerMap2.put(Integer.parseInt(e.getKey()), Integer.parseInt(e.getValue())) != null) {
+                throw new IllegalStateException("Duplicate key");
+            }
+        }</code></pre>
+<p>しかし、ループを使うのは避けたい。また、<code>Map&lt;Integer, Integer&gt; integerIntegerMap = new HashMap&lt;&gt;();</code>という可変の変数を宣言したくありません。</p>
+<h2 id="streamを使う">Streamを使う</h2>
+<p>Streamを使うと、for文を書かずに実装できます。</p>
+<pre><code class="language-java">Map&lt;Integer, Integer&gt; integerIntegerMap =
+    stringStringMap.entrySet().stream()
+        .collect(Collectors.toMap(
+            e -&gt; Integer.parseInt(e.getKey()),
+            e -&gt; Integer.parseInt(e.getValue())
+        ));</code></pre>
+<p>また、次のように<code>toUnmodifiableMap</code>を使うと不変(Immutable)なMapにできます。</p>
+<pre><code class="language-java">Map&lt;Integer, Integer&gt; integerIntegerMap =
+    stringStringMap.entrySet().stream()
+        .collect(Collectors.toUnmodifiableMap(
+            e -&gt; Integer.parseInt(e.getKey()),
+            e -&gt; Integer.parseInt(e.getValue())
+        ));</code></pre>
+<h2 id="その他の変換">その他の変換</h2>
+<p>Kyeだけ、Valueだけの変換も同様に実装できます。</p>
+<pre><code class="language-java">Map&lt;String, Integer&gt; stringIntegerMap =
+    .collect(Collectors.toMap(
+        e -&gt; e.getKey(),
+        e -&gt; Integer.parseInt(e.getValue())
+    ));
+Map&lt;Integer, String&gt; integerStringMap =
+    stringStringMap.entrySet().stream()
+        .collect(Collectors.toMap(
+            e -&gt; Integer.parseInt(e.getKey()),
+            e -&gt; e.getValue()
+        ));</code></pre>
+<h3 id="オススメの本">オススメの本</h3>
+<p>Streamについて勉強するな、この本がオススメです。</p>]]></content>
+  </entry>
+  <entry>
+    <title>Terraform / AWS ALBにCognito認証をかける</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/04/09/221/</id>
+    <updated>2020-04-09T07:42:48Z</updated>
+    <published>2020-04-09T07:42:48Z</published>
+    <content type="html"><![CDATA[<p>Amazon Cognito ユーザープールとAWS Application Load Balancerをつかて、簡単に自分のWebページに認証けることができます。</p></p>
+<p>他によい例が見あたらなかったので、Terraformを使って実装するサンプルを作成しました。</p>
+<h2 id="サンプルの構成">サンプルの構成</h2>
+<p>ALBにてCognito認証をかけ、認証に成功したら固定レスポンスを返します。</p>
+<h2 id="準備">準備</h2>
+<p>事前に次のものを用意しておく必要があります。</p>
+<ul>
+<li>Route 53で管理されたホストゾーン</li>
+<li>AWS Certificate Manager(ACM)で作成したSSL証明書</li>
+</ul>
+<h2 id="terraformサンプルコード">Terraformサンプルコード</h2>
+<h3 id="設定">設定</h3>
+<p>設定情報です。</p>
+<p><code>NOTE:</code>と書いてある項目は、自分の環境のものに変換する必要があります。</p>
+<p><code>variables.tf</code></p>
+<pre><code class="language-json">locals {
+  name = "cognito-test"
+  tags = {
+    "Name" = local.name
+  }
+  ###################
+  # VPC
+  ###################
+  cidr            = "10.20.0.0/16"
+  azs             = ["ap-northeast-1a", "ap-northeast-1c"]
+  private_subnets = ["10.20.1.0/24", "10.20.2.0/24"]
+  public_subnets  = ["10.20.101.0/24", "10.20.102.0/24"]
+  ###################
+  # ALB
+  ###################
+  # NOTE: ACMのARN
+  certificate_arn = "arn:aws:acm:ap-northeast-1:000000000000:certificate/xxxxxx"
+  backend_port    = 80
+  ###################
+  # Security groups
+  ###################
+  # 通過させるCIDRを設定(可能なら絞ったほうがよい)
+  alb_ingress_cidr_blocks = [
+    "0.0.0.0/0"
+  ]
+  ###################
+  # Route 53
+  ###################
+  domain_name = "example.com" #NOTE: Route53で管理しているドメイン名
+  ###################
+  # Cognito
+  ###################
+  # https://${cognito_oauth_domain_name}.auth.ap-northeast-1.amazoncognito.com というドメインを取得してくれる
+  cognito_oauth_domain_name = "cognito-oauth" #NOTE: Cognito認証のドメイン名(任意の名前)
+}</code></pre>
+<p>また、プロバイダの設定なども記述します。</p>
+<p><code>configuration.tf</code></p>
+<pre><code class="language-json">provider "aws" {
+  region  = "ap-northeast-1"
+  version = "~&gt; 2.0"
+}
+terraform {
+  required_version = "~&gt; 0.12"
+}</code></pre>
+<h3 id="cognito">Cognito</h3>
+<p>AWSの開発者ガイド<a href="https://docs.aws.amazon.com/ja_jp/cognito/latest/developerguide/getting-started-with-cognito-user-pools.html">ユーザープールの開始方法</a>を参考にして、Cognitoユーザープールの設定を記述しています。</p>
+<pre><code class="language-json">resource "aws_cognito_user_pool" "this" {
+  name                = "tools-user-pool"
+  mfa_configuration   = "OFF"     # MFA認証はしない
+  username_attributes = ["email"] # emailでログインする
+  admin_create_user_config {
+    allow_admin_create_user_only = true # 管理者のみがログインユーザを作成できる
+  }
+  password_policy {
+    # デフォルト値
+    minimum_length    = 8
+    require_lowercase = true
+    require_numbers   = true
+    require_symbols   = true
+    require_uppercase = true
+    temporary_password_validity_days = 3 # 一時パスワードの有効期限
+  }
+}
+resource "aws_cognito_user_pool_client" "this" {
+  name                          = "tools"
+  user_pool_id                  = aws_cognito_user_pool.this.id
+  prevent_user_existence_errors = "ENABLED" # LEGACY or ENABLED (AWSの推奨はENABLED)
+  generate_secret               = true      # アプリケーションシークレットの生成
+  # アプリクライアントの設定
+  supported_identity_providers         = ["COGNITO"]
+  callback_urls                        = ["https://${local.name}.${local.domain_name}/oauth2/idpresponse"]
+  allowed_oauth_flows                  = ["code"]
+  allowed_oauth_flows_user_pool_client = true
+  allowed_oauth_scopes = [
+    "openid"
+  ]
+  explicit_auth_flows = [
+    "ALLOW_CUSTOM_AUTH",
+    "ALLOW_REFRESH_TOKEN_AUTH",
+    "ALLOW_USER_SRP_AUTH",
+  ]
+}
+resource "aws_cognito_user_pool_domain" "this" {
+  domain       = local.cognito_oauth_domain_name
+  user_pool_id = aws_cognito_user_pool.this.id
+}</code></pre>
+<h3 id="ネットワーク">ネットワーク</h3>
+<p>ネットワークの設定は、<code>terraform-aws-modules/vpc/aws</code>を使って設定しています。</p>
+<p><code>network.tf</code></p>
+<pre><code class="language-json">module "vpc" {
+  source  = "terraform-aws-modules/vpc/aws"
+  version = "2.33.0"
+  create_vpc = true
+  name = local.name
+  cidr            = local.cidr
+  azs             = local.azs
+  private_subnets = local.private_subnets
+  public_subnets  = local.public_subnets
+  enable_nat_gateway = true
+  single_nat_gateway = true
+  tags = local.tags
+}</code></pre>
+<h3 id="ロードバランサー">ロードバランサー</h3>
+<p>Application Load Balancerの設定です。</p>
+<ul>
+<li>HTTPのリダイレクト設定</li>
+<li>Cognito認証通したら固定レスポンスを返す</li>
+</ul>
+<p>などの設定をしています。</p>
+<p><code>load-balancer.tf</code></p>
+<pre><code class="language-json">module "alb" {
+  source  = "terraform-aws-modules/alb/aws"
+  version = "5.3.0"
+  name = local.name
+  vpc_id          = module.vpc.vpc_id
+  subnets         = module.vpc.public_subnets
+  security_groups = flatten([module.alb_https_sg.this_security_group_id, module.alb_http_sg.this_security_group_id])
+  access_logs = {}
+  https_listeners = [
+    {
+      port            = 443
+      certificate_arn = local.certificate_arn
+    },
+  ]
+  http_tcp_listeners = [
+    {
+      port     = 80
+      protocol = "HTTP"
+    },
+  ]
+  target_groups = [
+    {
+      name                 = local.name
+      backend_protocol     = "HTTP"
+      backend_port         = local.backend_port
+      target_type          = "ip"
+      deregistration_delay = 10
+    },
+  ]
+  tags = local.tags
+}
+resource "aws_alb_listener_rule" "haribote_response" {
+  listener_arn = module.alb.https_listener_arns[0]
+  action {
+    order = 1
+    type  = "authenticate-cognito"
+    authenticate_cognito {
+      user_pool_arn       = aws_cognito_user_pool.this.arn
+      user_pool_client_id = aws_cognito_user_pool_client.this.id
+      user_pool_domain    = aws_cognito_user_pool_domain.this.domain
+    }
+  }
+  action {
+    order = 2
+    type  = "fixed-response"
+    fixed_response {
+      content_type = "text/html"
+      message_body = "&lt;h1&gt;Success&lt;/h1&gt;"
+      status_code  = "200"
+    }
+  }
+  condition {
+    field  = "path-pattern"
+    values = ["*"]
+  }
+}
+resource "aws_lb_listener_rule" "redirect_http_to_https" {
+  listener_arn = module.alb.http_tcp_listener_arns[0]
+  action {
+    type = "redirect"
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+  condition {
+    field  = "path-pattern"
+    values = ["*"]
+  }
+}
+###################
+# Security groups
+###################
+module "alb_https_sg" {
+  source  = "terraform-aws-modules/security-group/aws//modules/https-443"
+  version = "v3.0.1"
+  name        = "${local.name}-alb-https"
+  vpc_id      = module.vpc.vpc_id
+  ingress_cidr_blocks = local.alb_ingress_cidr_blocks
+  tags = local.tags
+}
+module "alb_http_sg" {
+  source  = "terraform-aws-modules/security-group/aws//modules/http-80"
+  version = "v3.0.1"
+  name        = "${local.name}-alb-http"
+  vpc_id      = module.vpc.vpc_id
+  ingress_cidr_blocks = local.alb_ingress_cidr_blocks
+  tags = local.tags
+}
+###################
+# Route53 record
+###################
+data "aws_route53_zone" "this" {
+  name         = local.domain_name
+  private_zone = false
+}
+resource "aws_route53_record" "this" {
+  zone_id = data.aws_route53_zone.this.zone_id
+  name    = local.name
+  type    = "A"
+  alias {
+    name                   = module.alb.this_lb_dns_name
+    zone_id                = module.alb.this_lb_zone_id
+    evaluate_target_health = true
+  }
+}</code></pre>
+<h3 id="実行">実行</h3>
+<p><code>terraform apply</code>すれば、各種リソースが作成されます。</p>
+<h3 id="ユーザーの作成">ユーザーの作成</h3>
+<p>認証に使用するユーザーを登録します。</p>
+<ul>
+<li><a href="https://ap-northeast-1.console.aws.amazon.com/cognito/users/?region=ap-northeast-1#/">ユーザープール コンソール</a> にアクセス
+<ul>
+<li>Terraformで作成されたユーザープールを選択</li>
+<li>左のリストから<code>ユーザーとプール</code>を選択</li>
+<li>ユーザーの作成</li>
+</ul>
+</li>
+</ul>
+<h3 id="検証">検証</h3>
+<p><code>https://cognito-test.example.com</code>にアクセスすると、認証画面が表示されます。( *<code>example.com</code>は自分のドメインに置換してください )</p>
+<p>認証に成功して、<code>Success</code>という表示が出れば成功です。</p>
+<h2 id="まとめ">まとめ</h2>
+<p>Terraformを使って、AWS ALBにCognito認証をかけるサンプルコードでした。</p>]]></content>
+  </entry>
+  <entry>
+    <title>Terraform AWS CodePipelineのGitHubWebHookをシークレットを書かずに設定する方法</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/04/04/211/</id>
+    <updated>2020-04-04T06:35:51Z</updated>
+    <published>2020-04-04T06:35:51Z</published>
+    <content type="html"><![CDATA[<p>TerraformでAWS CodePipelineのGitHubWebHookを設定できます。<br>
+しかし、GitHubシークレットをハードコーディングする必要があるので、セキュリティのリスクがあります。</p></p>
+<p>そこで、シークレットをTerraformに直接記述しない方法で、WebHookを設定する方法を紹介します。TerraformでWebHookの設定を記述し、シークレットだけCLIで上書きします。</p>
+<h2 id="terraformでwebhookを作成する">TerraformでWebHookを作成する</h2>
+<p>CodePipelineのWebHookを作成します。GitHubとの通信で使用するシークレットは、あとで上書きするので、適当なものを入れておきます。</p>
+<pre><code class="language-json">resource "aws_codepipeline_webhook" "this" {
+  name            = "my-codepipeline-webhook"
+  // CodePipelineの名前
+  target_pipeline = aws_codepipeline.this.name
+  // CodePipeline内のターゲットとなるアクション名
+  target_action   = "Source"
+  authentication  = "GITHUB_HMAC"
+  authentication_configuration {
+    // CLIで上書きするので、適当なシークレットにしておく
+    secret_token = "dummy"
+  }
+  filter {
+    json_path    = "$.ref"
+    match_equals = "refs/heads/{Branch}"
+  }
+  lifecycle {
+    ignore_changes = [
+      authentication_configuration
+    ]
+  }
+}</code></pre>
+<p>この状態で、<code>terraform apply</code>すると、CodePipelineのWebHookの設定が完了します。</p>
+<h2 id="aws-cliでwebhookの情報を取得">AWS CLIでWebHookの情報を取得</h2>
+<p>Terraformで作成したWebHookを確認します。</p>
+<pre><code class="language-bash">aws codepipeline list-webhooks \
+    --endpoint-url "https://codepipeline.ap-northeast-1.amazonaws.com" \
+    --region "ap-northeast-1" \
+    &gt; list_webhooks.json</code></pre>
+<p>出力された、<code>list_webhooks.json</code>は次のようになっています。</p>
+<pre><code class="language-json">{
+    "webhooks": [
+        {
+            "definition": {
+                "name": "my-codepipeline-webhook",
+                "targetPipeline": "my-codepipeline",
+                "targetAction": "Source",
+                "filters": [
+                    {
+                        "jsonPath": "$.ref",
+                        "matchEquals": "refs/heads/{Branch}"
+                    }
+                ],
+                "authentication": "GITHUB_HMAC",
+                "authenticationConfiguration": {
+                    "SecretToken": "dummy"
+                }
+            },
+            "url": "https://ap-northeast-1.webhooks.aws/trigger?xxxxxxxxxxxx",
+            "arn": "arn:aws:codepipeline:ap-northeast-1:xxxxx:webhook:my-codepipeline-webhook",
+            "tags": []
+        }
+    ]
+}</code></pre>
+<h2 id="aws-cliでwebhookのシークレットを変更する">AWS CLIでWebHookのシークレットを変更する</h2>
+<p>先ほど取得した、jsonファイルをもとに<code>my-codepipeline-webhook.json</code>を次のように作成します。シークレットは、ダミーではなく本当に設定したいランダムな文字列を入れます。</p>
+<pre><code class="language-json">{
+  "webhook": {
+    "name": "my-codepipeline-webhook",
+    "targetPipeline": "my-codepipeline",
+    "targetAction": "Source",
+    "filters": [
+      {
+        "jsonPath": "$.ref",
+        "matchEquals": "refs/heads/{Branch}"
+      }
+    ],
+    "authentication": "GITHUB_HMAC",
+    "authenticationConfiguration": {
+      "SecretToken": "aliueoogagohajghiuqehradv"
+    }
+  }
+}</code></pre>
+<p>次のコマンドをたたいて、シークレットを更新します。</p>
+<pre><code class="language-bash">aws codepipeline put-webhook --cli-input-json file://my-codepipeline-webhook.json</code></pre>
+<h2 id="githubでwebhookの登録をする">GitHubでWebHookの登録をする</h2>
+<p><code>リポジトリトップ</code> -&gt; <code>Settings</code> -&gt; <code>Webhooks</code> -&gt; <code>Add webhook</code></p>
+<ul>
+<li>Payload URL : list_webhooks.jsonの中から、設定したwebhookのurlをコピーして、貼り付ける</li>
+<li>Content type : application/json</li>
+<li>Secret : 先ほどCLIで上書きしたシークレットを貼り付ける</li>
+</ul>
+<p><code>Add webhook</code>　をクリックして、設定完了。</p>
+<h2 id="テスト">テスト</h2>
+<p>GitHubで何かPushをして、CodePipelineが起動すれば成功です。</p>
+<h2 id="参考">参考</h2>
+<p><a href="https://docs.aws.amazon.com/ja_jp/codepipeline/latest/userguide/pipelines-webhooks.html">https://docs.aws.amazon.com/ja_jp/codepipeline/latest/userguide/pipelines-webhooks.html</a></p>]]></content>
+  </entry>
+  <entry>
+    <title>エンジニアが快適にテレワークするためのTips</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/03/18/118/</id>
+    <updated>2020-03-18T11:12:38Z</updated>
+    <published>2020-03-18T11:12:38Z</published>
+    <content type="html"><![CDATA[<p>2020年春、新型コロナウィルス(COVID-19)の流行に際し、テレワークをしているエンジニアも多いのではないでしょうか？<br>
+そこで、私が実践している「エンジニアが快適にテレワークするためのTips」をまとめました。</p></p>
+<h2 id="環境">環境</h2>
+<p>オフィスと同じように、働きやすい環境をつくることが大切です。また、テレワークならではのグッズもあると便利です。</p>
+<h3 id="机とイス">机とイス</h3>
+<p>1日中ソファーで、膝にノートPCを置いて作業するには限界があります。</p>
+<p>なんでもいいので、机とイスを買いましょう。こんな感じのやつです。</p>
+<ul>
+<li>事務机 片袖机とメッシュ肘付きチェアのセット</li>
+</ul>
+<p><a href="https://www.amazon.co.jp/dp/B00HTRYH4M/ref=as_li_ss_il?ie=UTF8&#038;linkCode=li2&#038;tag=yutaka0mads-22&#038;linkId=ea4d1b3f36e3a21743cdbe36a74a9da0&#038;language=ja_JP" target="_blank" rel="noopener noreferrer"><img border="0" src="//ws-fe.amazon-adsystem.com/widgets/q?_encoding=UTF8&#038;ASIN=B00HTRYH4M&#038;Format=_SL160_&#038;ID=AsinImage&#038;MarketPlace=JP&#038;ServiceVersion=20070822&#038;WS=1&#038;tag=yutaka0mads-22&#038;language=ja_JP" /></a><img src="https://ir-jp.amazon-adsystem.com/e/ir?t=yutaka0mads-22&#038;language=ja_JP&#038;l=li2&#038;o=9&#038;a=B00HTRYH4M" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /></p>
+<h3 id="外部モニター">外部モニター</h3>
+<p>ノートPCの画面だけでは作業が捗りません。コードを書くには、やはり大きい画面があると便利です。</p>
+<p>こだわりがなければ、1万円強のもので十分です。</p>
+<ul>
+<li>Dell モニター 23.8インチ SE2416H</li>
+</ul>
+<p><a href="https://www.amazon.co.jp/dp/B017SMDGAI/ref=as_li_ss_il?ie=UTF8&#038;linkCode=li2&#038;tag=yutaka0mads-22&#038;linkId=094956fad6755430ce181145a09fa2af&#038;language=ja_JP" target="_blank" rel="noopener noreferrer"><img border="0" src="//ws-fe.amazon-adsystem.com/widgets/q?_encoding=UTF8&#038;ASIN=B017SMDGAI&#038;Format=_SL160_&#038;ID=AsinImage&#038;MarketPlace=JP&#038;ServiceVersion=20070822&#038;WS=1&#038;tag=yutaka0mads-22&#038;language=ja_JP" /></a><img src="https://ir-jp.amazon-adsystem.com/e/ir?t=yutaka0mads-22&#038;language=ja_JP&#038;l=li2&#038;o=9&#038;a=B017SMDGAI" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /></p>
+<h3 id="イアホンヘッドセット">イアホン/ヘッドセット</h3>
+<p>テレワークだと、テレビ会議が増えます。PC内蔵のマイクでも、音質は十分です。ただ、タイピングの音が相手にノイズとして届いてしまうのが難点です。</p>
+<p>そこで、マイク付きのイアホンを使うのがお勧めです。</p>
+<ul>
+<li>Apple EarPods with 3.5 mm Headphone Plug<br>
+<a href="https://amzn.to/3afJ7dE">https://amzn.to/3afJ7dE</a></li>
+</ul>
+<p>さらにいうと、ヘッドセットがあるとすごくいいです。すごくクリアに音声が相手に届きます。</p>
+<ul>
+<li>Sennheiser Communication PC 5 CHAT 508328 EPOS | Sennheiser</li>
+</ul>
+<p><a href="https://www.amazon.co.jp/dp/B07FY5LCH7/ref=as_li_ss_il?ie=UTF8&#038;linkCode=li2&#038;tag=yutaka0mads-22&#038;linkId=c04aa93c63db1a273ceef068ae42c28a&#038;language=ja_JP" target="_blank" rel="noopener noreferrer"><img border="0" src="//ws-fe.amazon-adsystem.com/widgets/q?_encoding=UTF8&#038;ASIN=B07FY5LCH7&#038;Format=_SL160_&#038;ID=AsinImage&#038;MarketPlace=JP&#038;ServiceVersion=20070822&#038;WS=1&#038;tag=yutaka0mads-22&#038;language=ja_JP" /></a><img src="https://ir-jp.amazon-adsystem.com/e/ir?t=yutaka0mads-22&#038;language=ja_JP&#038;l=li2&#038;o=9&#038;a=B07FY5LCH7" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /></p>
+<ul>
+<li>Logicool G ゲーミングヘッドセット G331 ブラック/レッド</li>
+</ul>
+<p><a href="https://www.amazon.co.jp/dp/B07NDN4VJG/ref=as_li_ss_il?ie=UTF8&#038;linkCode=li2&#038;tag=yutaka0mads-22&#038;linkId=5c9e92852ecb307958843641a8db36ec&#038;language=ja_JP" target="_blank" rel="noopener noreferrer"><img border="0" src="//ws-fe.amazon-adsystem.com/widgets/q?_encoding=UTF8&#038;ASIN=B07NDN4VJG&#038;Format=_SL160_&#038;ID=AsinImage&#038;MarketPlace=JP&#038;ServiceVersion=20070822&#038;WS=1&#038;tag=yutaka0mads-22&#038;language=ja_JP" /></a><img src="https://ir-jp.amazon-adsystem.com/e/ir?t=yutaka0mads-22&#038;language=ja_JP&#038;l=li2&#038;o=9&#038;a=B07NDN4VJG" width="1" height="1" border="0" alt="" style="border:none !important; margin:0px !important;" /></p>
+<h2 id="ライフスタイル">ライフスタイル</h2>
+<p>ライフスタイルは、「なるべく普段どおり」が一番ストレスがなくてよいでしょう。</p>
+<h3 id="仕事着に着替える">仕事着に着替える</h3>
+<p>テレワークだと、仕事着に着替えないで仕事することもできます。ただ、そうやってテレワークを続けていると、だんだん仕事とプライベートの境がなくなってきてストレスがたまります。</p>
+<p>普段、会社に行くときの朝のルーチンワークを変えないことが大事です。</p>
+<ul>
+<li>いつもの時間に起きて</li>
+<li>いつもどおり顔を洗って</li>
+<li>服を着替えて仕事しましょう！</li>
+</ul>
+<h3 id="仕事の前に外出する">仕事の前に外出する</h3>
+<p>普段仕事をするときは、「通勤」があるので、朝いったん外出することになります。<br>
+朝のルーチンワークをなるべく変えないようにするため、テレワークの場合も朝の支度が整ったら外に出ることをお勧めします。</p>
+<p>犬の散歩でも、コンビニに飲み物を買いに行くでもよいと思います。何かと理由をつけて外出します。すると気分が切り替わって「仕事する」モードになるような気がします。</p>
+<h2 id="ワーク">ワーク</h2>
+<p>テレワークならではの働き方に切り替える必要があります。</p>
+<h3 id="しっかり休む">しっかり休む</h3>
+<p>テレワークをすると、「いつもより集中できる人」と「集中できない人」の2パターンに別れます。</p>
+<p>「いつもより集中できる人」の場合、むしろ集中しすぎてしまって、17時頃にはくたくたになっています。そうならないように、いつもより意識的に休憩を入れます。</p>
+<p>オフィスだとミーティングあったり、誰かが話しかけてきたりと、仕事が中断されるイベントがよく発生します。テレワークだと、そのようなイベントが少ないので、能動的に「仕事を中断すること」が大切です。</p>
+<h3 id="ポモドーロテクニックを使う">ポモドーロテクニックを使う</h3>
+<p><a href="https://en.wikipedia.org/wiki/Pomodoro_Technique">Pomodoro Technique – Wikipedia(en)</a>は、「25分の作業と5分の休憩を繰り返す」というテクニックです。</p>
+<p>「集中しすぎる」ことを防ぐために、タイマーで作業を中断させ、まめに休憩をとることで効率的に作業できます。</p>
+<p>ポモドーロテクニックは、<a href="https://apps.apple.com/jp/app/be-focused-focus-timer/id973130201">Be Focused</a>というアプリを使うと便利です。</p>
+<h3 id="オーバーコミュニケーションする">オーバーコミュニケーションする</h3>
+<p>オフィスで作業をしていれば、あなたがどんな作業をしているかは、見ればすぐにわかります。テレワークだと相手の環境が見えないので、あなたがどんな作業をしていて、捗っているのか？ 困っているのか？ が相手にはまったく伝わりません。</p>
+<p><code>Slack</code>, <code>LINE</code>, <code>email</code>, <code>電話</code>なんでもよいですが、積極的にリモートでコミュニケーションをとって、自分の作業を相手に共有しましょう。もしかしたら、いいヒントがもらえるかもしれません。</p>
+<p>相手からの連絡にもすぐ気が付くように、スマホの常に通知はONにしておくのがよいと思います。</p>
+<h3 id="自分の状態を明らかにする">自分の状態を明らかにする</h3>
+<p>とは言っても、コミュニケーションを取れない状況もあると思います。「ランチ中/休憩中」や「集中して作業している」などです。</p>
+<p>そんなときも、自分がすぐにはコミュニケーション取れない状況であることを伝えておくと、相手は安心すると思います。</p>
+<p><img src="https://resources.yutaka0m.com/2020031808218.png" alt=""></p>
+<h3 id="いつもと同じ時間で働く">いつもと同じ時間で働く</h3>
+<p>通勤時間がかからないため、ついついオーバーワークしがちです。そのため、残業もなるべくせず、意識していつもと同じ9-17時でテレワークするとよいと思います。</p>
+<h3 id="いろんな場所で仕事する-ただしベッドは除く">いろんな場所で仕事する ただし、ベッドは除く</h3>
+<p>一番仕事がやりやすいのは、会社と同じような机とイスの環境ですが、気分転換に違う場所で作業するのもよいでしょう。</p>
+<p>たとえば、ダイニングテーブルだったり、ソファーだったり。</p>
+<p>私は、「メールを確認するときはソファーに座ってやる」と決めています。もし、仕事用の机とイス意外にも場所があるのであれば、能動的に場所を変えながら作業しましょう。</p>
+<p>ただし、ベッドだけはダメ。ベッドは「寝るときに入る場所」と人間は無意識に理解しているので、ベットだとどうしても眠たくなります。</p>
+<h2 id="まとめ">まとめ</h2>
+<p>「エンジニアが快適にテレワークするためのTips」をまとめました。</p>
+<p>ざっくりいうと、次のとおりです。</p>
+<ul>
+<li>生活は普段どおりを心がける</li>
+<li>テレワークならではの業務管理をする</li>
+</ul>
+<p>余談：テレワークをやって思ったのですが、「社員が集まれる場所=オフィス」ってすごく貴重なものなのだと理解しました。コミュニケーションは「Face to face」が一番です。</p>]]></content>
+  </entry>
+  <entry>
+    <title>Markdownに記述したローカル画像を自動でAWS S3にアップロードするCLI Markdown-hikoの使い方</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/03/18/161/</id>
+    <updated>2020-03-18T10:56:34Z</updated>
+    <published>2020-03-18T10:56:34Z</published>
+    <content type="html"><![CDATA[<p>私は普段、Markdownを使ってローカルでブログを書いています。記事を公開する場合、次の手順でやっています。</p></p>
+<ol>
+<li>Markdownで指定していたローカルの画像ファイルを1つ1つサーバ(AWS S3)にアップロードする</li>
+<li>Markdownで記述しているローカルの画像パスを、サーバのアドレス(<code>https://xxxx.jpg</code>)に1つ1つ置換していく</li>
+<li>記事をCMSにアップロードして、ブログを公開する</li>
+</ol>
+<p>そんな面倒なことをしなくても、ブログサービス(たとえば「はてなブログ」)の機能を使えば、画像をコピー&amp;ペーストするだけでサーバにアップロードしてくれます。</p>
+<p>ただし、ブログを引越す時に、画像ファイルがブログサービスに依存していると大変です。画像を引越し先のブログサービスに転送して、画像のURLを1つ1つ置換して…と途方もないい時間がかかります。<br>
+なので、画像はブログサービスとは依存しない方法で配信したいという持ちベージョンがあります。</p>
+<h2 id="やったこと">やったこと</h2>
+<p>画像をサーバにアップロードして、画像パスをサーバのURLに置換する作業は、とても非生産的です。なので、この作業を自動化しました。</p>
+<ol>
+<li>Markdownで指定したローカルの画像ファイルを</li>
+<li>自動的にAWS S3にアップロードして</li>
+<li>自動的に画像のパスをサーバのURLに置換</li>
+</ol>
+<p>名前は<code>Markdown-hiko</code>といいます。Pythonで書いたCLIです。</p>
+<h2 id="markdown-hiko-の使い方">Markdown hiko の使い方</h2>
+<p><code>Markdown-hiko</code>の使い方を説明します。画像配信用のAWS S3を立てるところからやります。</p>
+<h3 id="aws-s3のバケットをつくる">AWS S3のバケットをつくる</h3>
+<p>S3のコンソール画面にいきます。</p>
+<p><a href="https://console.aws.amazon.com/s3/home">https://console.aws.amazon.com/s3/home</a></p>
+<p><code>バケットを作成</code>を選択して次のように入力します。</p>
+<ul>
+<li>バケット名: 任意の名前</li>
+<li>リージョン: 日本なら<code>ap-northeast-1</code>を選びます</li>
+<li>パブリックアクセスをすべてブロックのチェクを外します</li>
+</ul>
+<p><img src="https://resources.yutaka0m.com/20200317204826.png" alt=""></p>
+<p>最後に、<code>現在の設定により、このバケットと中のオブジェクトがパブリックになる可能性があることを了承します。</code>のチェックをつけて、<code>バケットを作成</code>をクリックします。</p>
+<p>バケット一覧から、作成したバケットをクリックします。<code>プロパティ</code> -&gt; <code>Static website hosting</code>をクリックします。</p>
+<p><img src="https://resources.yutaka0m.com/20200317205221.png" alt=""></p>
+<p>次のように、<code>このバケットを使用してウェブサイトをホストする</code>にチェックを入れて、<code>インデックスドキュメント</code>に<code>index.html</code>と入力します。 このときに、表示されているエンドポイントをメモしておきます。</p>
+<p><img src="https://resources.yutaka0m.com/20200317205426.png" alt=""></p>
+<p>続いて、<code>アクセス権限</code> -&gt; <code>パケットポリシー</code>に次のコードを記入します。</p>
+<p><code>xxxxx</code>のところにはバケット名を入力します。</p>
+<pre><code class="language-json">{
+  "Version":"2012-10-17",
+  "Statement":[
+    {
+      "Sid":"AddPerm",
+      "Effect":"Allow",
+      "Principal": "*",
+      "Action":["s3:GetObject"],
+      "Resource":["arn:aws:s3:::xxxxx/*"]
+    }
+  ]
+}</code></pre>
+<p><img src="https://resources.yutaka0m.com/20200317215423.png" alt=""></p>
+<p>この設定をすると、バケット内がすべてアクセス可能になるので、セキュアな情報を保存する場合はお気をつけください。</p>
+<p>以上で、画像を保存するS3の設定は完了です。S3の前に<code>CloudFront</code>を立てて、独自ドメインを指定した方がよりよいと思います。参考：<a href="https://qiita.com/NaokiIshimura/items/46994e67b712831c3016">CloudFront 経由で S3 のファイルにアクセスする – Qiita</a></p>
+<h3 id="markdown-hikoを使う">Markdown-hikoを使う</h3>
+<h4 id="インストール">インストール</h4>
+<p>S3の設定が終わったので、Markdown-hikoの使い方を説明します。</p>
+<p>まずは、Mardown-hikoをインストールします。</p>
+<pre><code class="language-bash">$ pip install --user markdown-hiko</code></pre>
+<p>※ markdown-hikoが実行できない場合はPATHを通してください。Macの場合、<code>$HOME/.local/bin</code>がデフォルトのインストールパスです。</p>
+<h4 id="markdownを書く">Markdownを書く</h4>
+<p>たとえば、次のようなディレクトリ構造だったとします。</p>
+<pre><code class="language-bash">/tmp
+ └── markdown
+      └── doc
+      │    └── test.md
+      └── img
+           └── test-image.jpg</code></pre>
+<p><code>test.md</code>から<code>./img/test-image.jpg</code>の画像を表示するには、</p>
+<p>例1:</p>
+<pre><code class="language-markdown"># Test画像 例1
+![](../img/test-image.jpg)</code></pre>
+<p>と記述します。</p>
+<p>また、絶対パスで記述したり、</p>
+<p>例2:</p>
+<pre><code class="language-markdown"># Test画像 例2
+![](/tmp/markdown/img/test-image.jpg)</code></pre>
+<p>プロジェクトルートが<code>/tmp/markdown</code>だとすると、</p>
+<p>例3:</p>
+<pre><code class="language-markdown"># Test画像 例3
+![](/markdown/mg/test-image.jpg)</code></pre>
+<p>と書くこともできます。 （GitHubで画像を表示する際は、プロジェクトルートからのパスなので、この指定方法をよく使います）</p>
+<h4 id="markdown-hikoを使う-1">Markdown-hikoを使う</h4>
+<p>例1と例2で、<code>Markdown-hiko</code>を使用する場合を説明します。</p>
+<p>先ほど作成したS3のホスティングURLが<code>https://markdown-hiko-test-bucket.s3-ap-northeast-1.amazonaws.com</code>で、バケット名が<code>markdown-hiko-test-bucket</code>だったとすると、次のようのなります。</p>
+<pre><code class="language-bash">$ export AWS_ACCESS_KEY_ID=xxxxx #AWSのアクセスキーを入力
+$ export AWS_SECRET_ACCESS_KEY=xxxxx #AWSのシークレットアクセスキーを入力
+$ export AWS_DEFAULT_REGION=ap-northeast-1 #AWSのデフォルトリージョンを入力
+$ cd /tmp/markdown/doc
+$ markdown-hiko \
+      -f ./test.md \
+      -u "https://markdown-hiko-test-bucket.s3-ap-northeast-1.amazonaws.com" \
+      -b "markdown-hiko-test-bucket"</code></pre>
+<p>これは例なので、実際に使用するときは、<code>-f</code>, <code>-u</code>, <code>-b</code>に指定する値は、自分の環境のものを使用してください。</p>
+<p>AWSのアクセスキーがわからない場合は、<a href="https://docs.aws.amazon.com/ja_jp/IAM/latest/UserGuide/id_credentials_access-keys.html#Using_CreateAccessKey">IAM ユーザーのアクセスキーの管理</a>の手順で発行してください。</p>
+<p>コマンドを実行すると、Markdownファイルは次のように変換されているはずです。画像は自動で指定したS3のバケットにアップロードされています。</p>
+<pre><code class="language-markdown"># Test画像 例1
+![](https://markdown-hiko-test-bucket.s3-ap-northeast-1.amazonaws.com/test-image.jpg)</code></pre>
+<p>また、例3の書き方で<code>markdown-hiko</code>を使用する場合、プロジェクトルートを<code>-r</code>オプションで指定してあげる必要があります。</p>
+<pre><code class="language-bash">$ export AWS_ACCESS_KEY_ID=xxxxx #AWSのアクセスキーを入力
+$ export AWS_SECRET_ACCESS_KEY=xxxxx #AWSのシークレットアクセスキーを入力
+$ export AWS_DEFAULT_REGION=ap-northeast-1 #AWSのデフォルトリージョンを入力
+$ cd /tmp/markdown/doc
+$ markdown-hiko \
+      -f ./test.md \
+      -u "https://markdown-hiko-test-bucket.s3-ap-northeast-1.amazonaws.com" \
+      -b "markdown-hiko-test-bucket" \
+      -r /tmp/markdown</code></pre>
+<h2 id="ソースコード">ソースコード</h2>
+<ul>
+<li>GitHub : <a href="https://github.com/yutaka0m/markdown-hiko">https://github.com/yutaka0m/markdown-hiko</a></li>
+<li>PyPI : <a href="https://pypi.org/project/markdown-hiko/">https://pypi.org/project/markdown-hiko/</a></li>
+</ul>
+<p>※ Markdown-hikoはPython3.7と3.8で動作検証しています。</p>
+<h2 id="まとめ">まとめ</h2>
+<p>このCLIが誰かの非生産的作業の助けとなると幸いです。</p>]]></content>
+  </entry>
+  <entry>
+    <title>PythonフォーマットをIntelliJとGitHub Actionsで自動化する (black/isort/flake8/pytest)</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/03/17/112/</id>
+    <updated>2020-03-17T08:16:32Z</updated>
+    <published>2020-03-17T08:16:32Z</published>
+    <content type="html"><![CDATA[<p>Pythonのコードを読みやすくするために、IntelliJにPythonのフォーマッタを導入する方法を紹介します。<br>
+また、GitHubで自動テスト(CI)できるように、GitHub Actionsの設定もおこないます。</p>
+<p>導入するのは次のツールです。</p>
+<ul>
+<li>black: コードのフォーマッタ</li>
+<li>isort: importのフォーマッタ</li>
+<li>flake8: 使用していない変数などを警告してくれます</li>
+<li>pytest: ユニットテスト</li>
+</ul>
+<h2 id="intellijの設定">IntelliJの設定</h2>
+<h3 id="file-watchersのインストール">File Watchersのインストール</h3>
+<p><code>File Watchers</code>は、コードの変更をトリガーにして任意のコマンドを自動で実行してくれるプラグインです。</p>
+<p>IntelliJにて、<code>Preferences</code> -&gt; <code>Plugins</code>から「File Watchers」を検索してインストールします。<br>
+インストールが完了したら、IntelliJを再起動させます。</p>
+<p><img src="https://resources.yutaka0m.com/20200317161828.png" alt=""></p>
+<h3 id="blackの設定">blackの設定</h3>
+<h4 id="設定ファイルの作成">設定ファイルの作成</h4>
+<p>プロジェクトのルートディレクトリに、<code>pyproject.toml</code>を作成して、次のように書きます。</p>
+<pre><code class="language-bash">[tool.black]
+line-length = 120</code></pre>
+<h4 id="blackのインストール">blackのインストール</h4>
+<p>次のコマンドでblackをインストールします。</p>
+<pre><code class="language-bash">pip install black
+which black
+#blackが保存されているパスが表示されるのでメモしておく</code></pre>
+<h4 id="intellijでの設定">IntelliJでの設定</h4>
+<p>続いてIntelliJの設定です。<br>
+<code>Preferences</code> -&gt; <code>Tools</code> -&gt; <code>File Watchers</code>で「+」を選択します。</p>
+<p>設定画面が表示されるので、次のように設定します。</p>
+<ul>
+<li>Name: Black</li>
+<li>File type: Python</li>
+<li>Scope: Project Files</li>
+<li>Program: <code>which black</code>で調べた、blackのパス</li>
+<li>Arguments: <code>$FilePath$</code></li>
+<li>Output paths to refresh: <code>$FilePath$</code></li>
+<li>Working directory: <code>$ProjectFileDir$</code></li>
+</ul>
+<p><img src="https://resources.yutaka0m.com/20200317123154.png" alt=""></p>
+<p>この設定によって、Pythonコードを更新するたびに<code>black</code>が走り、フォーマットしてくれます。</p>
+<h3 id="isortの設定">isortの設定</h3>
+<h4 id="設定ファイルの作成-1">設定ファイルの作成</h4>
+<p>プロジェクトのルートディレクトリに、<code>.isort.cfg</code>を作成して、次のように書きます。</p>
+<pre><code class="language-bash">[settings]
+include_trailing_comma = true
+line_length = 120
+multi_line_output = 3</code></pre>
+<h4 id="isortのインストール">isortのインストール</h4>
+<pre><code class="language-bash">pip install isort
+which isort
+#isortが保存されているパスが表示されるのでメモしておく</code></pre>
+<h4 id="intellijでの設定-1">IntelliJでの設定</h4>
+<p>続いてIntelliJの設定です。<br>
+<code>Preferences</code> -&gt; <code>Tools</code> -&gt; <code>File Watchers</code>で「+」を選択します。</p>
+<p>設定画面が表示されるので、次のように設定します。</p>
+<ul>
+<li>Name: isort</li>
+<li>File type: Python</li>
+<li>Scope: Project Files</li>
+<li>Program: <code>which isort</code>で調べた、isortのパス</li>
+<li>Arguments: <code>$FilePath$</code></li>
+<li>Output paths to refresh: <code>$FilePath$</code></li>
+<li>Working directory: <code>$ProjectFileDir$</code></li>
+</ul>
+<p><img src="https://resources.yutaka0m.com/20200317124650.png" alt=""></p>
+<h3 id="flake8の設定">flake8の設定</h3>
+<h4 id="設定ファイルの作成-2">設定ファイルの作成</h4>
+<p>プロジェクトのルートディレクトリに、<code>.flake8</code>を作成して、次のように書きます。</p>
+<pre><code class="language-bash">[flake8]
+ignore = E501, E203, W503, W504
+max-line-length = 120</code></pre>
+<p>flake8はGitHub Actiosのみで使用する想定なので、IntelliJの設定はしません。GitHub Actionsが<code>flake8</code>を実行する際に、この設定ファイルを読み込んでくれます。</p>
+<h2 id="github-actionsの設定">GitHub Actionsの設定</h2>
+<p>GitHub Actionsでも、Pythonコードのフォーマットが正しいかテストをします。</p>
+<p>GitHubリポジトリで、<code>Actions</code> -&gt; <code>Set up a workflow yourself</code>を選択すると、GitHub Actionsの編集画面が表示されます。</p>
+<p><img src="https://resources.yutaka0m.com/20200317163616.png" alt=""></p>
+<p>エディタに次のコードを書きます。</p>
+<pre><code class="language-yaml">name: Python CI
+on:
+  push:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.7, 3.8]
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v1
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Test with pytest
+      run: |
+        pip install pytest
+        pytest
+    - name: Test with black
+      run: |
+        pip install black
+        black --check .
+    - name: Test with flake8
+      run: |
+        pip install flake8
+        flake8 . --statistics --count --show-source
+    - name: Test with isort
+      run: |
+        pip install isort
+        isort -c</code></pre>
+<p>このGitHub Actionsは、GitHubにpushするたび、python3.7と3.8の環境で<code>pytest</code>, <code>black</code>, <code>flake8</code>, <code>isort</code>を実行します。プロジェクトにユニットテストがない場合は、<code>pytest</code>は不要です。</p>
+<p>フォーマットが不正な場合は<code>Pull requests</code>の画面にテスト失敗したことが表示されます。これでコードレビューが捗ります。</p>
+<p>このGitHub Actionsの設定は次のリポジトリで使っているのでご参考ください。</p>
+<p><a href="https://github.com/yutaka0m/markdown-hiko">https://github.com/yutaka0m/markdown-hiko</a></p>
+<h2 id="参考">参考</h2>
+<ul>
+<li><a href="https://github.com/yutaka0m/markdown-hiko">https://github.com/yutaka0m/markdown-hiko</a></li>
+<li><a href="https://github.com/psf/black#pycharmintellij-idea">https://github.com/psf/black#pycharmintellij-idea</a></li>
+<li><a href="https://help.github.com/ja/actions/getting-started-with-github-actions/about-github-actions">https://help.github.com/ja/actions/getting-started-with-github-actions/about-github-actions</a></li>
+</ul>]]></content>
+  </entry>
+  <entry>
+    <title>Terraformでlambdaを実行する</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/03/16/107/</id>
+    <updated>2020-03-16T06:08:13Z</updated>
+    <published>2020-03-16T06:08:13Z</published>
+    <content type="html"><![CDATA[<p>Terraformを使って、AWS Lambdaの関数定義を作成します。</p></p>
+<p>Lambdaのソースコードをコピー&amp;ペーストしたり、手動でzip化したりするのが面倒なので、ソースコードもTerraformの機能を使ってzip化してアップロードします。</p>
+<h2 id="ディレクトリ構造">ディレクトリ構造</h2>
+<p>次のようなディレクトリ構成にします。</p>
+<pre><code class="language-bash">.
+├── config.tf
+├── main.tf
+├── output
+│   └──
+└── src
+    └── lambda_function.py</code></pre>
+<p><code>/output</code>は、<code>/src</code>をzipにしたファイルが吐き出されるフォルダなので、空のフォルダを作成しておきます。</p>
+<h2 id="各ファイルの説明">各ファイルの説明</h2>
+<p><code>config.tf</code>には、Terraformを実行するために必要な情報を記述しています。</p>
+<pre><code class="language-json">provider "aws" {
+  region     = "ap-northeast-1"
+}
+terraform {
+  required_version = "&gt;= 0.12"
+}</code></pre>
+<p><code>lambda_function.py</code>は、サンプルのlambda関数です。実際には、ここにコードを実装してきます。</p>
+<pre><code class="language-python">import json
+def lambda_handler(event, context):
+    return {
+        &#039;statusCode&#039;: 200,
+        &#039;body&#039;: json.dumps(&#039;Hello from Lambda!&#039;)
+    }
+</code></pre>
+<p><code>main.tf</code>で、lambda関数を定義しています。</p>
+<pre><code class="language-json">data "archive_file" "sample_function" {
+  type        = "zip"
+  source_dir  = "./src"
+  output_path = "./output/lambda_function.zip"
+}
+resource "aws_lambda_function" "test_function" {
+  filename         = data.archive_file.sample_function.output_path
+  function_name    = "test_function"
+  role             = aws_iam_role.iam_for_lambda.arn
+  handler          = "lambda_function.lambda_handler"
+  source_code_hash = data.archive_file.sample_function.output_base64sha256
+  runtime          = "python3.8"
+  memory_size = 128 # 最適な値にしてください
+  timeout     = 30 # 最適な値にしてください
+}
+resource "aws_iam_role" "iam_for_lambda" {
+  name = "iam_for_lambda"
+  assume_role_policy = &lt;&lt;EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}</code></pre>
+<p><code>archive_file</code>でsrcフォルダをzip化しています。<br>
+また、<code>aws_lambda_function</code>でAWSのLambda定義をしています。</p>
+<h2 id="実行">実行</h2>
+<p>コマンドラインで次のようなコマンドを実行します。</p>
+<pre><code class="language-bash">terraform init
+terraform apply
+# 変更内容が表示されるので、「yes」と入力</code></pre>
+<p>AWSのコンソールを確認すると、lambda関数が作成されています。</p>
+<p><img src="https://resources.yutaka0m.com/20200316082710.png" alt=""></p>
+<p>関数の中身を確認すると、ローカルで書いた関数が反映されています。</p>
+<p><img src="https://resources.yutaka0m.com/20200316083030.png" alt=""></p>
+<p>あとは、ソースコードを編集するごとに<code>terraform apply</code>をすればAWSに反映されます。</p>]]></content>
+  </entry>
+  <entry>
+    <title>キーチェインに複数のアクセスキーを保存してAWSのコマンドを楽に実行する</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/03/15/77/</id>
+    <updated>2020-03-14T20:50:56Z</updated>
+    <published>2020-03-14T20:50:56Z</published>
+    <content type="html"><![CDATA[<p>AWSを利用するツール（<code>terraforming</code>など）は、環境変数の<code>AWS_ACCESS_KEY_ID</code>や<code>AWS_SECRET_ACCESS_KEY</code>などを参照して、認証をしてくれます。</p></p>
+<p>ただし、複数のアカウントや認証キーをもつ場合、いちいち環境変を変更するのが手間です。</p>
+<p>そこで、何かツールを使って、簡単かつ安全に環境変数を切り替える手段を探しました。見つけたのが、<a href="https://techlife.cookpad.com/entry/envchain">envchain</a>です。</p>
+<p>envchainは、特定のコマンド打つだけで、Mac OSのキーチェインに保存した値を読み出してくれます。</p>
+<h2 id="インストール">インストール</h2>
+<p>Homebrewをインストールしている場合は、次のコマンドでインストールできます。</p>
+<pre><code class="language-bash">brew install envchain</code></pre>
+<p>もしくは、GitHubからクローンして使用します。<a href="https://techlife.cookpad.com/entry/envchain">envchain – GitHub</a></p>
+<h2 id="値の保存">値の保存</h2>
+<p>環境変数を保存したい場合は、次のようにコマンドを打ちます。</p>
+<pre><code class="language-bash">envchain --set NAMESPACE ENV...</code></pre>
+<p>実際に、AWSのアクセスキーを保存する場合は、次のとおりです。</p>
+<pre><code class="language-bash">$ envchain --set aws AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
+aws-private.AWS_ACCESS_KEY_ID: アクセスキーを入力
+aws-private.AWS_SECRET_ACCESS_KEY: シークレットアクセスキーを入力
+aws-private.AWS_DEFAULT_REGION: リージョンを入力</code></pre>
+<p>名前を変えれば、複数のアクセスキーを保存できます。</p>
+<pre><code class="language-bash"># 1つ目のアクセスキー
+envchain --set aws-private AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION
+# 別のアカウントののアクセスキー
+envchain --set aws-work AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_DEFAULT_REGION</code></pre>
+<h2 id="セットした環境変数の使い方">セットした環境変数の使い方</h2>
+<p>セットした環境変数を呼びだす場合は、</p>
+<pre><code class="language-bash">envchain NAMESPACE COMMAND ARGS...</code></pre>
+<p>という構文となります。</p>
+<p>たとえば、<code>terraforming</code>というコマンドを、キーチェインに保存した環境変数を呼びだして使用する場合は、次のようなコマンドとなります。</p>
+<pre><code class="language-bash"># 1つ目のアクセスキー
+envchain aws-private terraforming alb
+# 別のアカウントののアクセスキー
+envchain aws-work terraforming alb</code></pre>
+<h2 id="まとめ">まとめ</h2>
+<p>AWSのアクセスキーなど、環境変数を簡単に管理するためのツール「envchain」をご紹介しました。</p>
+<p><code>~/.bashrc</code>に環境変数をベタ書きするよりかはるかに安全なので、積極的に使っていこうと思います。</p>]]></content>
+  </entry>
+  <entry>
+    <title>LPIC-101に落ちました そして再受験</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/03/12/74/</id>
+    <updated>2020-03-12T11:31:36Z</updated>
+    <published>2020-03-12T11:31:36Z</published>
+    <content type="html"><![CDATA[<p>2020年1月。LPIC-101を受験しました。そして落ちました。</p></p>
+<p>2月に再度受験して、無事合格したので、振り返りをします。</p>
+<h2 id="lpciとは">LPCIとは</h2>
+<p>LPICとは、<a href="https://www.lpi.org/">LPI</a>が実施するLinux技術者の認定試験です。</p>
+<p>LPICは1~3まであり、今回受験したのは「Linux管理者」用試験のLPIC-1です。</p>
+<p>LPIC-1で問われるのは、<a href="https://www.lpi.org/ja/our-certifications/lpic-1-overview">公式ページ</a>によると、</p>
+<blockquote>
+<p>LPIC-1は、LPIのマルチレベルLinuxプロフェッショナル認定プログラムの最初の認定です。LPIC-1は、候補者がコマンドラインで保守作業を実行する能力を検証し、Linuxを実行しているコンピュータをインストールして構成し、基本的なネットワークを構築します。</p>
+</blockquote>
+<p>と記述されています。LPIC-1の試験範囲は前半(LIPC-101)と後半(LPIC-102)に分かれています。</p>
+<p>「LPICはLinuCに変わった。LPICは古い試験だ。」という記事をいくつか見ますが、それは間違いです。<br>
+LPICとLinuCは試験団体が違うだけで、どちらも現存する試験です。</p>
+<h2 id="なぜ受けようとおもったか">なぜ受けようとおもったか</h2>
+<h3 id="コマンドの脳内mapを作りたかったから">コマンドの脳内Mapを作りたかったから</h3>
+<p>今までは、やりたい作業ごとに「そんなコマンドがあるのか？」を調べていました。また、便利なコマンドを知らず、面倒な方法でやっていた or 諦めていたこともあったでしょう。</p>
+<p>もしコマンドがざっと頭に入っていたら、「確かこんなコマンドで操作できたはず?!」と連想できるので、<strong>作業がはかどるのではないか</strong>と思いました。</p>
+<h3 id="黒い画面が怖かったから">黒い画面が怖かったから</h3>
+<p>人間は知らないことに恐怖を覚えます。</p>
+<p>Linuxの黒い画面は、まさに「知らないこと」の塊で、大げさにいうと「恐怖」でした。</p>
+<h3 id="試験に申し込んでしまったから">試験に申し込んでしまったから</h3>
+<p>「試験に申し込んでしまったら、受けるしかない」</p>
+<p>私は技術系の試験を受ける時は、勉強を始めると同時に試験の申し込みをします。そうしないと、いつまでたっても勉強のやる気が起きないからです。</p>
+<h2 id="試験について">試験について</h2>
+<h3 id="なぜ落ちたのか">なぜ落ちたのか</h3>
+<p>LPIC-101は暗記です。</p>
+<p>たとえば、次のパッケージ管理コマンド。</p>
+<ul>
+<li>apt-get</li>
+<li>apt-cache</li>
+<li>dpkg</li>
+<li>rpm</li>
+<li>yum</li>
+<li>zypper</li>
+</ul>
+<p>これの<strong>主要な</strong>コマンドとオプションをすべて覚えていますか？</p>
+<p>そのほかにも、</p>
+<ul>
+<li>カーネルの起動時に渡されるパラメータが記載されているファイルは？</li>
+<li>Sys Vinitでデフォルトのランレベルを記載できるファイルのパスは？</li>
+<li>partedを使って、新しいハードディスクのパーティションテーブルをGPTで設定する方法は？</li>
+</ul>
+<p>など、いろいろなことが出題されます。正直、「これ覚えても一生使わないぞ！」と思うものがあります。</p>
+<p>結果として、モチベーションが上がらず十分な勉強時間を確保できませんでした。</p>
+<h3 id="なぜ再受験して受かったのか">なぜ再受験して受かったのか</h3>
+<p>1回目を受けた時の勉強では、<a href="https://ping-t.com/">Ping-t</a>という問題集を解けるサイトでひたすら問題を解いていました。</p>
+<p>ただし、実際に試験を受けて思ったことが、</p>
+<p>「問題集には出てこない問題がたくさん出てくる」</p>
+<p>ということです。</p>
+<p>そこで、問題集だけではダメだと反省し、教科書を何周も読んで理解を深めました。</p>
+<p>Amazon : 「Linux教科書 LPICレベル1 Version4.0対応」</p>
+<p>その結果、2回目は640点で無事合格できました。</p>
+<h2 id="得たもの--失ったもの">得たもの / 失ったもの</h2>
+<h3 id="得たもの">得たもの</h3>
+<blockquote>
+<p>コマンドがざっと頭に入っていたら、「確かこんなコマンドで操作できたはず?!」と連想できるので、作業が捗ると思いました。</p>
+</blockquote>
+<p>受験の目的だった、上記の内容は確かでした。勉強したことによって作業が捗っています。</p>
+<h3 id="失ったもの">失ったもの</h3>
+<p>大事な時間をLPICの試験勉強に当てたこと。</p>
+<h2 id="まとめ">まとめ</h2>
+<p>LPIC-101を受験して、落ちました。でも、再受験して無事合格できました。</p>
+<p>総じて「勉強してよかった」というのが今の気持ちです。</p>]]></content>
+  </entry>
+  <entry>
+    <title>WordPressブログをAWSで構築する-個人で利用する場合の料金など-</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/03/12/66/</id>
+    <updated>2020-03-11T22:22:10Z</updated>
+    <published>2020-03-11T22:22:10Z</published>
+    <content type="html"><![CDATA[<p>AWSでWordpressを立ち上げました。</p></p>
+<p>今まで、３ヶ月ほど「はてなブログ」でエンジニアブログを書いていました。Markdownが書けて、独自ドメインも使えて、料金も安いことから気にいっていました。</p>
+<p>しかし、このたび、自分でブログを構築してみようと思って、AWSに引っ越しました。</p>
+<h2 id="構成図">構成図</h2>
+<p><img src="https://resources.yutaka0m.com/20200312061516.png" alt=""></p>
+<h2 id="料金">料金</h2>
+<table>
+<thead>
+<tr>
+<th>サービス</th>
+<th>料金</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Route 53(ホスト)</td>
+<td>$0.5(1件あたり)</td>
+</tr>
+<tr>
+<td>Route 53(クエリ)</td>
+<td>$0.4(1万件あたり)</td>
+</tr>
+<tr>
+<td>CloudFront(転送)</td>
+<td>$0.114(~10TBまで)</td>
+</tr>
+<tr>
+<td>CloudFront(リクエスト)</td>
+<td>$0.009(1万件あたり)</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>$0.025(~500TB)</td>
+</tr>
+<tr>
+<td>WAF(WebACL)</td>
+<td>$5(1件あたり)</td>
+</tr>
+<tr>
+<td>WAF(ルール)</td>
+<td>$1(1件あたり) * 3ルール = $3</td>
+</tr>
+<tr>
+<td>ALB</td>
+<td>$0.0243(時間あたり) * 730時間 = $17.74</td>
+</tr>
+<tr>
+<td>EC2(t2.micro)</td>
+<td>$0.0152 * 730時間 = $11.10</td>
+</tr>
+<tr>
+<td>RDS(db.t2.micro)</td>
+<td>$0.026 * 730時間 = $18.98</td>
+</tr>
+<tr>
+<td>合計</td>
+<td>$148.89</td>
+</tr>
+<tr>
+<td>合計($1=¥110))</td>
+<td>¥16,377</td>
+</tr>
+</tbody>
+</table>
+<p>ただし、次のサービスは12ヶ月無料になります。</p>
+<ul>
+<li>CloudFront : ~50GB転送/~200万件リクエスト</li>
+<li>EC2 : t2.microで~750時間</li>
+<li>RDS : db.t2.micro~750時間</li>
+<li>S3 : ~5GB</li>
+</ul>
+<p>よって、無料枠を考慮して計算すると、</p>
+<table>
+<thead>
+<tr>
+<th>サービス</th>
+<th>料金</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Route 53(ホスト)</td>
+<td>$0.5(1件あたり)</td>
+</tr>
+<tr>
+<td>Route 53(クエリ)</td>
+<td>$0.4(1万件あたり)</td>
+</tr>
+<tr>
+<td>CloudFront(転送)</td>
+<td>$0</td>
+</tr>
+<tr>
+<td>CloudFront(リクエスト)</td>
+<td>$0</td>
+</tr>
+<tr>
+<td>S3</td>
+<td>$0</td>
+</tr>
+<tr>
+<td>WAF(WebACL)</td>
+<td>$5(1件あたり)</td>
+</tr>
+<tr>
+<td>WAF(ルール)</td>
+<td>$1(1件あたり) * 3ルール = $3</td>
+</tr>
+<tr>
+<td>ALB</td>
+<td>$0.0243(時間あたり) * 730時間 = $17.74</td>
+</tr>
+<tr>
+<td>EC2(t2.micro)</td>
+<td>$0</td>
+</tr>
+<tr>
+<td>RDS(db.t2.micro)</td>
+<td>$0</td>
+</tr>
+<tr>
+<td>合計</td>
+<td>$26.64</td>
+</tr>
+<tr>
+<td>合計($1=¥110))</td>
+<td>¥2,930</td>
+</tr>
+</tbody>
+</table>
+<h3 id="route-53">Route 53</h3>
+<p>独自ドメインを、AWSで購入しました。</p>
+<p>そのうえで、<code>https://https://tech.yutaka0m.com/</code>にアクセスがあると、ALBのIPアドレスを返すように設定しました。</p>
+<h3 id="waf">WAF</h3>
+<p>WAF(Web アプリケーション ファイアウォール)です。WordPressへの攻撃って、結構多いらしいので、安全のため設置しました。</p>
+<p>不審なアクセスをブロックしてくれます。</p>
+<h3 id="alb">ALB</h3>
+<p>EC2が2台あるので、そのロードバランシングをしていいます。 どちらかを切り離して、WordPressのメンテナンスするときに便利です。</p>
+<p>HTTPS通知の終端としても利用しています。</p>
+<h3 id="ec2">EC2</h3>
+<p>EC2が1台で、CPUを数％しか使っていないので、2台は不要です。普段は1台で稼働しています。</p>
+<p>節約のため、RDSが1台しかないので、EC2もマルチAZにはしませんでした。</p>
+<h3 id="rds">RDS</h3>
+<p>AWSのマネージドなDBです。1年無料枠内でやりたいので、シングルAZで稼働しています。</p>
+<h3 id="s3">S3</h3>
+<p>ブログの画像ファイルは、S3に保存しています。</p>
+<h3 id="cloudfront">CloudFront</h3>
+<p>AWSのマネージドなCDNです。</p>
+<p>画像にアクセスする際は、S3に直接アクセスすることはできず、必ずCloudFrontを通過します。</p>
+<p>また、S3だとHTTPS通信ができないので、CloudFront<br>
+でHTTPS通信を実装しています。</p>
+<h3 id="wordpress">WordPress</h3>
+<p>次のプラグインを導入しています。</p>
+<ul>
+<li>Autoptimize : CSSとJSを圧縮してくれる</li>
+<li>Login rebuilder : ログインURLを変更する</li>
+<li>WP Githuber MD : Markdownで記事を書けるようにする</li>
+<li>Yoast SEO : SEO対策</li>
+</ul>
+<h2 id="感想">感想</h2>
+<p>AWSいい勉強になりました。また、ブログの細かい設定まで自分でできるのが嬉しいです。</p>
+<p>12ヶ月後の料金が恐ろしい。</p>]]></content>
+  </entry>
+  <entry>
+    <title>エンジニアが勉強するべきAWS試験について調べる</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/03/02/24/</id>
+    <updated>2020-03-02T09:00:47Z</updated>
+    <published>2020-03-02T09:00:47Z</published>
+    <content type="html"><![CDATA[<p>AWSには認定資格がいくつかあります。</p></p>
+<p>どんな資格があるか？　受けるべき資格は何か？　について調べたメモ。</p>
+<h2 id="はじめに-なぜ資格をとるのか">はじめに なぜ資格をとるのか</h2>
+<p>「成長」には、まず自分の足りないところを自覚することから始まります。<br>
+自分の足りないところを自覚するには、「ものさし」が必要です。</p>
+<p>資格も、客観的な評価を下してくれる「ものさし」の1つです。<br>
+だから資格という「ものさし」を使って、自分の現状を知り、成長の機会とします。</p>
+<p>ただし、正しい資格を選ばないと、自分の目指す「成長」は見込めません。<br>
+「どれが自分に適した資格なのか？」を探すことがとても大切だと思います。</p>
+<h2 id="awsの資格一覧">AWSの資格一覧</h2>
+<p>2020/03/01現在、<a href="https://aws.amazon.com/jp/certification/">AWS認定</a>のページを確認すると、いくつかの資格があることがわかります。</p>
+<h2 id="業務別のaws資格">業務別のAWS資格</h2>
+<p>素晴らしいことに、最適な資格を探す「道しるべ」がすでに用意されています。</p>
+<ul>
+<li><a href="https://aws.amazon.com/jp/training/learning-paths/#%E3%83%AD%E3%83%BC%E3%83%AB%E3%83%99%E3%83%BC%E3%82%B9%E3%81%AE%E3%83%91%E3%82%B9">ロールベースのパス</a></li>
+<li><a href="https://aws.amazon.com/jp/training/learning-paths/#%E3%82%BD%E3%83%AA%E3%83%A5%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3%E3%83%91%E3%82%B9">ソリューションパス</a></li>
+</ul>
+<h2 id="業種別のオススメ">業種別のオススメ</h2>
+<h3 id="非エンジニア向けの資格は">非エンジニア向けの資格は？</h3>
+<p>非エンジニア : AWSのクラウドを使って業務をしている人（経理、営業、経営者など）</p>
+<p><strong><a href="https://aws.amazon.com/jp/certification/certified-cloud-practitioner/?nc1=h_ls">AWS クラウド プラクティショナー</a></strong></p>
+<p>AWSの基礎的な知識を理解するための資格です。</p>
+<h3 id="開発者向けの資格は">開発者向けの資格は?</h3>
+<p>開発者 : AWSクラウドを使ってソフトウェア開発をしている人。</p>
+<p><strong><a href="https://aws.amazon.com/jp/certification/certified-developer-associate/">AWS 認定デベロッパー　アソシエイト</a></strong></p>
+<p>AWSの主要なサービスの理解と、AWSを使ったアプリケーション開発、デプロイ、デバッグについての資格です。</p>
+<h3 id="設計者向けの資格は">設計者向けの資格は?</h3>
+<p>設計者 : AWSを使ったソリューションのシステム設計をする人。</p>
+<p><strong><a href="https://aws.amazon.com/jp/certification/certified-solutions-architect-associate/">AWS ソリューション アーキテクト – アソシエイト</a></strong></p>
+<p>AWSのテクノロジを使って、要件に基づいた堅牢なアプリケーションを構築する知識を身に付ける資格です。</p>
+<h3 id="運用者向けの資格は">運用者向けの資格は?</h3>
+<p>運用者 : 開発者が作ったコードを運用（デプロイ・管理・運用など）</p>
+<p><strong><a href="https://aws.amazon.com/jp/certification/certified-sysops-admin-associate/">AWS 認定SysOps アドミニストレーター – アソシエイト</a></strong></p>
+<p>デプロイ、管理および運用における技術的な専門知識を身に付ける資格です。</p>
+<h3 id="devopsエンジニア向けの資格は">DevOpsエンジニア向けの資格は?</h3>
+<p>DevOpsエンジニア : 開発/運用の垣根を超えて、AWSクラウドを利用した、開発、デプロイ、保守までを担当する人。</p>
+<p>「開発者向けの資格」か「運用者向けの資格」どちらかを受けるとよい、としています。</p>
+<p><strong><a href="https://aws.amazon.com/jp/certification/certified-developer-associate/">AWS 認定デベロッパー　アソシエイト</a></strong></p>
+<p><strong><a href="https://aws.amazon.com/jp/certification/certified-sysops-admin-associate/">AWS 認定SysOps アドミニストレーター – アソシエイト</a></strong></p>
+<h2 id="まとめ-エンジニアが勉強す流べきaws試験は">まとめ エンジニアが勉強す流べきAWS試験は？</h2>
+<p>設計がメインな人:<strong><a href="https://aws.amazon.com/jp/certification/certified-solutions-architect-associate/">AWS ソリューション アーキテクト – アソシエイト</a></strong></p>
+<p>開発がメインな人:<strong><a href="https://aws.amazon.com/jp/certification/certified-developer-associate/">AWS 認定デベロッパー　アソシエイト</a></strong></p>
+<p>運用がメインな人:<strong><a href="https://aws.amazon.com/jp/certification/certified-sysops-admin-associate/">AWS 認定SysOps アドミニストレーター – アソシエイト</a></strong></p>
+<p>私は、「AWS 認定SysOps アドミニストレーター – アソシエイト」の勉強をしてみようと思います。</p>]]></content>
+  </entry>
+  <entry>
+    <title>GItHub Actions プライベートリポジトリに複数のアクションを同居させる</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/02/19/22/</id>
+    <updated>2020-02-19T09:00:35Z</updated>
+    <published>2020-02-19T09:00:35Z</published>
+    <content type="html"><![CDATA[<p>GitHub Actionsを利用していると、「プライベートな共通の処理」をどこかにまとめておきたくなります。</p></p>
+<p>アクションを作成するには、<a href="https://help.github.com/ja/actions/automating-your-workflow-with-github-actions/creating-a-javascript-action">JavaScript アクションを作成する</a>を参考にすると良いのですが、1リポジトリ1アクションの前提で説明されています。</p>
+<p>この手法だと、共通の処理を1つ作るごとにリポジトリを作成するため、リポジトリが乱立してしまいます。</p>
+<p>そこで、1つのリポジトリに複数のアクションを同居できないか検証をしてみました。</p>
+<h2 id="実装">実装</h2>
+<h3 id="ディレクトリ-構造">ディレクトリ 構造</h3>
+<p>適当な名前のリポジトリを作成して、以下のようなディレクトリー 構造にしました。</p>
+<p>リポジトリ名 : PrivateActions</p>
+<pre><code class="language-bash">GoodbyeAction/
+├—action.yml
+├—index.js
+└—package.json
+HelloAction/
+├—action.yml
+├—index.js
+└—package.json
+.github/
+└—workflows/
+  ├—goodbye.yml
+  └—hello.yml</code></pre>
+<p><code>GoodbyeAction</code>と<code>HelloAction</code>それぞれのフォルダーの配下にアクション定義が記述されています。</p>
+<h3 id="コード">コード</h3>
+<p>GoodbyeAction/action.yml</p>
+<pre><code class="language-yaml">name: ‘Goodbye World’
+description: ‘Sey Goodbye’
+runs:
+  using: ‘node12’
+  main: ‘index.js’</code></pre>
+<p>GoodbyeAction/index.js</p>
+<pre><code class="language-javascript">async function run() {
+    console.log(“Goodbye”)
+}
+run()</code></pre>
+<p>HelloAction/action.yml</p>
+<pre><code class="language-yaml">name: ‘Hello World’
+description: ‘Sey Hello’
+runs:
+  using: ‘node12’
+  main: ‘index.js’</code></pre>
+<p>HelloAction/index.js</p>
+<pre><code class="language-javascript">async function run() {
+    console.log(“hello”)
+}
+run()</code></pre>
+<h3 id="ワークフロー">ワークフロー</h3>
+<p><a href="https://help.github.com/ja/actions/automating-your-workflow-with-github-actions/creating-a-javascript-action#example-using-a-private-action">JavaScript アクションを作成する</a>にも書かれていますが、プライベートリポジトリのアクションを実行するには、チェックアウトする必要があります。</p>
+<p>チェックアウトしたうえで、それぞれのアクションのフォルダーの相対パスを<code>uses:</code> で指定すると実行できます。</p>
+<p>goodbye.yml</p>
+<pre><code class="language-yaml">
+name: GOODBYE
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run GoodbyeAction
+      uses: ./GoodbyeAction</code></pre>
+<p>hello.yml</p>
+<pre><code class="language-yaml">name: HELLO
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run HelloAction
+      uses: ./HelloAction</code></pre>
+<h3 id="結果">結果</h3>
+<p>hello.ymlの結果</p>
+<p><img src="https://resources.yutaka0m.com/20200210165234.png" alt=""></p>
+<p>goodbye.ymlの結果</p>
+<p><img src="https://resources.yutaka0m.com/20200210165250.png" alt=""></p>
+<h2 id="他のリポジトリから利用するテスト">他のリポジトリから利用するテスト</h2>
+<p>別のリポジトリを作成して、作成したプライベートリポジトリのアクションを呼び出すことができるかテストしてみます。</p>
+<h3 id="トークン発行">トークン発行</h3>
+<p>外部のプライベートリポジトリを参照するにはトークンが必要になります。</p>
+<p>GitHub -&gt; Settings -&gt; Personal access tokens で「Generate new token」をクリックします。</p>
+<p>Noteに適当な名前を入れて、repoに☑️します。</p>
+<p><img src="https://resources.yutaka0m.com/20200210165319.png" alt=""></p>
+<p>最下のGenerate tokenをクリックするとトークンが表示されるので、コピーしておきます。</p>
+<h3 id="トークンをsecretsに登録する">トークンをSecretsに登録する</h3>
+<p>適当な名前のリポジトリを作成して、</p>
+<p>Settings -&gt; Secrets -&gt; Add a new secret をクリックします。</p>
+<p><img src="https://resources.yutaka0m.com/20200210165336.png" alt=""></p>
+<p>Nameに適当な名前を 入れて、Valueのところにトークンをペースト。Add secretをクリックして保存します。</p>
+<h3 id="ワークフロー-1">ワークフロー</h3>
+<p>以下のようにワークフローを作成します</p>
+<p>.github/workflows/test.yml</p>
+<pre><code class="language-yaml">name: TEST
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PrivateActions
+        uses: actions/checkout@v2
+        with:
+          repository: yutaka0m/PrivateActions
+          path: PrivateActions
+          token: ${{ secrets.ACTIONS_ACCESS_TOKEN }}
+      - name: Run GoodbyeAction
+        uses: ./PrivateActions/GoodbyeAction
+      - name: Run HelloAction
+        uses: ./PrivateActions/HelloAction</code></pre>
+<h3 id="結果-1">結果</h3>
+<p>それぞれのアクションが実行できていることを確認できました。</p>
+<p><img src="https://resources.yutaka0m.com/20200210165356.png" alt=""></p>
+<h2 id="まとめ">まとめ</h2>
+<p>「1つのリポジトリに複数のアクションを同居できる」ということがわかりました。</p>
+<p>これでアクション用のリポジトリが量産されることは防げそうです。</p>]]></content>
+  </entry>
+  <entry>
+    <title>GitHub Actionsで自分のアクションを書けるようになる</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/02/08/20/</id>
+    <updated>2020-02-08T09:00:29Z</updated>
+    <published>2020-02-08T09:00:29Z</published>
+    <content type="html"><![CDATA[<p>GitHub Actionsで自分のアクションを作成したいのですが、どう実装すればいいのかイメージがわきません。。。</p></p>
+<p>公開されているアクションをコードリーディングして、雰囲気をつかんでみました。</p>
+<h2 id="対象のactions">対象のActions</h2>
+<p><a href="https://github.com/marketplace/actions/google-java-format">Google Java Format · Actions · GitHub Marketplace · GitHub</a></p>
+<p>Javaのコードフォーマットをかけるアクションを対象としました。</p>
+<h2 id="コードリーディングする">コードリーディングする</h2>
+<p>メインの処理は<a href="https://github.com/axel-op/googlejavaformat-action/blob/53f39d2660a1d3c596dadbd2a2c15077fa6a7d85/index.js">index.js</a>に書かれてあります。</p>
+<ol>
+<li>フォーマッターをかけるjarファイルのURLを取得</li>
+<li>jarをダウンロード</li>
+<li>フォーマットを実行</li>
+<li>フォーマットしたファイルをコミットしてpush</li>
+</ol>
+<p>という処理をしています。</p>
+<h3 id="13行目">1~3行目</h3>
+<pre><code class="language-javascript">// 拡張機能をインポートして変数に代入します。JavaでいうImportにあたります。
+const core = require(&#039;@actions/core&#039;);
+const exec = require(&#039;@actions/exec&#039;);
+const glob = require(&#039;@actions/glob&#039;);</code></pre>
+<h3 id="5行目">5行目</h3>
+<pre><code class="language-javascript">// constは定数。process.envは環境変数の呼び出しです。
+const executable = &lt;code>${process.env.HOME}/google-java-format.jar</code>;&lt;/code></pre>
+<p><a href="https://help.github.com/ja/actions/automating-your-workflow-with-github-actions/using-environment-variables#default-environment-variables">環境変数の利用</a> を見ると、env.HOMEは</p>
+<blockquote>
+<p>「ユーザーデータの格納に使用されるenv.GitHubホームディレクトリのパス」</p>
+</blockquote>
+<p>です。</p>
+<h3 id="714行目">7~14行目</h3>
+<pre><code class="language-javascript">// GoogleJavaFormatを実行します
+// async functionは非同期処理をする関数宣言。argsとfilesという引数を持つ
+async function executeGJF(args, files) {
+    // [‘-jar’, executable]`という配列と、空白文字列で分割したargsの配列を結合
+    let arguments = [‘-jar’, executable].concat(args.split(“ “));
+    if (files !== null) {
+        // argumentsの末尾にfilesの要素を追加
+        for (const file of files) { arguments.push(file); }
+    }
+    // 連想配列の宣言
+    // GITHUB_WORKSPACEは、チェックアウトしたリポジトリのパス
+    const options = { cwd: process.env.GITHUB_WORKSPACE }
+    // exec.execは「コマンドの実行」
+    await exec.exec(&#039;java&#039;, arguments, options);
+}</code></pre>
+<p><code>options</code>は<a href="https://github.com/actions/toolkit/blob/d9347d4ab99fd507c0b9104b2cf79fb44fcc827d/packages/exec/src/interfaces.ts#L5">toolkit/interfaces.ts</a>を設定できます。今回は作業ディレクトリを指定しています。</p>
+<p>引数が、</p>
+<ul>
+<li>args = <code>—replace</code></li>
+<li>files = <code>a.java b.java</code></li>
+</ul>
+<p>だと、<code>java -jar ~/google-java-format.jar --replace a.java b.java</code>が実行されます。</p>
+<h3 id="1628行目">16~28行目</h3>
+<pre><code class="language-javascript">// 実行して標準出力を返却します
+async function execAndGetOutput(command) {
+    let output = ‘’;
+    const options = {
+        // 実行ログを出力するか
+        silent: true,
+        ignoreReturnCode: false,
+        listeners: {
+            // 標準出力で呼び出されるコールバック関数
+            // 標準出力をouputに足している
+            stdout: (data) =&gt; output += data.toString(),
+            // 標準エラー出力をコンソールに出力する
+            stderr: (data) =&gt; console.error(data)
+        }
+    };
+    await exec.exec(command, null, options);
+    return output;
+}</code></pre>
+<p><a href="https://github.com/actions/toolkit/blob/d9347d4ab99fd507c0b9104b2cf79fb44fcc827d/packages/exec/src/interfaces.ts#L34">listeners:</a>で、各イベントで呼び出されるコールバック関数を定義できます。</p>
+<h3 id="3053行目">30~53行目</h3>
+<pre><code class="language-javascript">// メインの関数
+async function run() {
+    try {
+        // google java formatの情報を所得するAPIのpath
+        const urlRelease = ‘https://api.github.com/repos/google/google-java-format/releases/latest’;
+        // execAndGetOutputを使ってAPIを呼び出して、JSONをパースした結果を代入する
+        const latestRelease = JSON.parse(await execAndGetOutput(&lt;code>curl -s “${urlRelease}”</code>));
+        // 取得したJSONから<code>assets</code>の部分を取り出す
+        const assets = latestRelease[‘assets’];
+        // assetsの中のリストから、nameがall-deps.jarで終わる要素を探し、
+        // その要素のbrowser_download_urlを代入する
+        const downloadUrl = assets.find(asset =&gt; asset[&#039;name&#039;].endsWith(&#039;all-deps.jar&#039;))[&#039;browser_download_url&#039;];
+        // google-java-format-xxx.jarをダウンロードして、
+        // ~/google-java-format.jarに保存する
+        await exec.exec(<code>curl -sL ${downloadUrl} -o ${executable}</code>);
+        // —version の引数でgoogle-java-format-xxx.jar実行
+        // フォーマッターのバージョンが標準出力される
+        await executeGJF(&#039;--version&#039;, null);
+        // アクションを実行する際に、argsで設定した引数を取得する デフォルト値は —replace
+        const args = core.getInput(&#039;args&#039;);
+        // glob.createでオブジェクトを生成して、filesで指定した引数をglob()する
+        const files = await (await glob.create(core.getInput(‘files’))).glob();
+        // 上記で作成した引数をもとにgoogle-java-format-xxx.jar実行
+        await executeGJF(args, files);
+        // アクションを実行する際に、skipCommitがfalseの場合
+        if (core.getInput(&#039;skipCommit&#039;).toLowerCase() !== &#039;true&#039;) {
+            const options = { silent: true };
+            await exec.exec(&#039;git&#039;, [&#039;config&#039;, &#039;user.name&#039;, &#039;GitHub Actions&#039;], options);
+            await exec.exec(&#039;git&#039;, [&#039;config&#039;, &#039;user.email&#039;, &#039;&#039;], options);
+            options.silent = false;
+            // execがが失敗しても、処理をエラーとしない
+            options.ignoreReturnCode = true;
+            // フォーマットの結果をすべてコミットする
+            await exec.exec(&#039;git&#039;, [&#039;commit&#039;, &#039;-m&#039;, &#039;Google Java Format&#039;, &#039;--all&#039;], options);
+            // 変更をpushする
+            await exec.exec(&#039;git&#039;, [&#039;push&#039;], options);
+        }
+    } catch (message) {
+        core.setFailed(message);
+    }
+}&lt;/code></pre>
+<p>GitHubのAPI <a href="https://api.github.com/repos/google/google-java-format/releases/latest">https://api.github.com/repos/google/google-java-format/releases/latest</a> をjarファイルのpathを調べています。</p>
+<p>grob()は<a href="https://github.com/isaacs/node-glob">node-glob</a>です。ワイルドカードで指定したファイル名から、ファイルの一覧を取得します。</p>
+<h3 id="55行目">55行目</h3>
+<pre><code class="language-javascript">run()</code></pre>
+<p>先ほどの<code>function run()</code>を実行しています。</p>]]></content>
+  </entry>
+  <entry>
+    <title>GitHub Actionsで複数のリポジトリをClone (Checkout)する</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/02/04/18/</id>
+    <updated>2020-02-04T09:00:46Z</updated>
+    <published>2020-02-04T09:00:46Z</published>
+    <content type="html"><![CDATA[<h2 id="概要">概要</h2>
+<p>以下の作業をやりたくて、実装方法を調査しました。</p></p>
+<ul>
+<li>GItHub Actionsでビルドする際に、自分以外のプライベートリポジトリも必要</li>
+<li>自身 + 外部のプライベートリポジトリを共存させる方法が必要　だった</li>
+</ul>
+<h2 id="実装">実装</h2>
+<pre><code class="language-yaml">name: CI
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    - name: Checkout　external repository
+      uses: actions/checkout@v2
+      with:
+        repository: my-org/other-project
+        path: external
+        token: ${{ secrets.EX_GITHUB_TOKEN }}
+# 以下処理つづく...</code></pre>
+<h2 id="補足">補足</h2>
+<p><code>name: Checkout repository</code>で定番の<code>uses: actions/checkout@v2</code>を実行して、自身のリポジトリをCheckoutします。</p>
+<p>その上で外部のリポジトリをCheckoutするためには、</p>
+<pre><code class="language-yaml">uses: actions/checkout@v2
+with:
+  repository: my-org/other-project
+  path: external
+  token: ${{ secrets.EX_GITHUB_TOKEN }}</code></pre>
+<p><code>repository:</code> で外部のリポジトリを指定します。</p>
+<p><code>path:</code> で保存先ディレクトリを指定します。名前はなんでも良いです。<br>
+<code>path:</code> を指定しないと、1回目のCheckoutが上書きされてしまいます。<br>
+外部のリポジトリを参照したい場合は<code>./external</code>を見ます。</p>
+<p>最後に<code>token:</code> でトークンを指定します。</p>
+<p>トークンは</p>
+<ol>
+<li>personal access tokenを作成（settings -&gt; Developer settings -&gt; Personal access tokensでrepo権限を指定）</li>
+<li>リポジトリのsecretに”EX_ACCESS_TOKEN”という名前で設定してアクセストークンを貼り付けます。</li>
+</ol>
+<p>の手順で設定できます。</p>
+<h2 id="おわりに">おわりに</h2>
+<p>GitHub ActionsだとGitHub内で完結し、ある程度の利用時間まで追加課金なしで利用できるので便利ですね。</p>]]></content>
+  </entry>
+  <entry>
+    <title>OpenAPI Generatorへのコントリビュート</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/01/30/16/</id>
+    <updated>2020-01-30T07:39:25Z</updated>
+    <published>2020-01-30T07:39:25Z</published>
+    <content type="html"><![CDATA[<h2 id="初めに">初めに</h2>
+<p>先日、OSSであるOpenAPI GeneratorへPRを出して、マージされました。</p></p>
+<p><a href="https://github.com/OpenAPITools/openapi-generator/pull/5090">Add deprecated annotation in kotlin-spring by yutaka0m · Pull Request #5090 · OpenAPITools/openapi-generator · GitHub</a></p>
+<p>このPRについて、コミットを追いながら自分なりに解説します。</p>
+<p>「*OpenAPI Generatorとは？」については、以下の資料が参考になります。</p>
+<ul>
+<li><a href="https://www.m3tech.blog/entry/2019/08/15/110000">APIのコードを自動生成させたいだけならgRPCでなくてもよくない? – エムスリーテックブログ</a></li>
+<li><a href="https://www.slideshare.net/techblogyahoo/swagger-openapi-specification-30-api">Swagger ではない OpenAPI Specification 3.0 による API サーバー開発</a></li>
+</ul>
+<h2 id="prの内容">PRの内容</h2>
+<p>OpenAPIで以下のように、<code>customerFirstName</code>が<code>deprecated</code>であると宣言します。</p>
+<pre><code class="language-yaml">components:
+  schemas:
+    Request:
+      type: object
+      properties:
+        customerCode:
+          type: string
+          example: &#039;0001&#039;
+        customerFirstName:
+          type: string
+          example: &#039;first&#039;
+          deprecated: true</code></pre>
+<p>このYAMLを元に「OpenAPI Generatorで<code>kotlin-spring</code>のテンプレートを指定して自動生成したときに、<code>@Deprecated(message=“”)</code>を挿入してくれるようにしたい。」という内容です。</p>
+<p>以下が、理想とする出力結果です。PR前は、OpenAPIで<code>deprecated: true</code>と宣言しても、自動生成されたコードには何も反映されていませんでした。</p>
+<pre><code class="language-kotlin">data class Response (
+    @JsonProperty(“customerCode”) val customerCode: kotlin.String? = null,
+    @Deprecated(message=“”)
+    @JsonProperty(“customerFirstName”) val customerFirstName: kotlin.String? = null
+)</code></pre>
+<h2 id="コミットを追っていく">コミットを追っていく</h2>
+<p>以下、PRのコミットログを1つ1つ追っていきます。</p>
+<h3 id="add-deprecated-in-kotlin-dataclass">add Deprecated in kotlin dataClass</h3>
+<p>Commit -&gt; <a href="https://github.com/OpenAPITools/openapi-generator/pull/5090/commits/b3c9bc394da7d6ee6127c46974afa7da58be6b72">Add deprecated annotation in kotlin-spring by yutaka0m · Pull Request #5090 · OpenAPITools/openapi-generator · GitHub</a></p>
+<p>OpenAPI Generatorのgenerateコマンドを実行すると、codegen配下のjavaがOpenAPIを読み込んだ後、mustacheのテンプレートエンジンへバインドするようになっています。</p>
+<p>今回は対象のテンプレートが<code>kotlin-spring</code>なので、<a href="https://github.com/OpenAPITools/openapi-generator/tree/master/modules/openapi-generator/src/main/resources/kotlin-spring">resources/kotlin-spring</a>配下が対象のテンプレートです。</p>
+<p><code>@Deprecated</code>のアノテーションをつけたいのは<code>data class</code>なので<a href="https://github.com/OpenAPITools/openapi-generator/blob/master/modules/openapi-generator/src/main/resources/kotlin-spring/dataClass.mustache">dataClass.mustache</a>を見ます。</p>
+<p>まずはmustacheを頑張って読み解きます。（※mustacheは可読性が低い）</p>
+<p>下記は、dataClass.mustacheの一部ですが、なんとなくkotlinの<code>data class</code>に見えてきます。</p>
+<pre><code class="language-bash"># — 省略 —
+data class {{classname}} (
+{{#requiredVars}}
+{{&gt;dataClassReqVar}}{{^-last}},
+{{/-last}}{{/requiredVars}}{{#hasRequired}}{{#hasOptional}},
+{{/hasOptional}}{{/hasRequired}}{{#optionalVars}}{{&gt;dataClassOptVar}}{{^-last}},
+{{/-last}}{{/optionalVars}}
+)
+# — 省略 —</code></pre>
+<p>なんとなく以下のように見えませんか？</p>
+<pre><code class="language-kotlin">data class Hoge (
+) </code></pre>
+<p>人間にわかるように解読すると以下のようになります。<br>
+（if文の開始と終了は<code>if</code> , <code>fi</code>で示しました）</p>
+<pre><code class="language-bash"># — 省略 —
+data class {{クラス名}} (
+{{requiredVarsリストの繰り返し:開始}}
+{{dataClassReqVar.mustacheを挿入する}}{{if not リストの最後}},
+{{fi not リストの最後}}{{/requiredVarsリストの繰り返し:終了}}{{if hasRequired == true && if hasOptional == true}},
+{{fi hasRequired == true && if hasOptional == true}}{{optionalVarsの繰り返し:開始}}{{dataClassOptVar.mustacheを挿入する}}{{if not リストの最後}},
+{{fi not リストの最後}}{{optionalVarsの繰り返し:終了}}
+)
+# — 省略 —</code></pre>
+<p>メインの繰り返し処理だけ抜き出すと</p>
+<ol>
+<li>requiredVars（必須パラメーター）のリストがある限り、dataClassReqVar.mustacheを挿入する</li>
+<li>optionalVars（非必須パラメーター）のリストがある限り、dataClassOptVar.mustacheを挿入する</li>
+</ol>
+<p>やりたいことは、非必須パラメーターに<code>@Deprecated</code>のアノテーションをつけることなので、「<a href="https://github.com/OpenAPITools/openapi-generator/blob/master/modules/openapi-generator/src/main/resources/kotlin-spring/dataClassOptVar.mustache">dataClassOptVar.mustache</a>を編集すれば良い」とわかりました。</p>
+<p>dataClassOptVar.mustacheを <a href="https://github.com/OpenAPITools/openapi-generator/pull/5090/commits/b3c9bc394da7d6ee6127c46974afa7da58be6b72">修正</a>し、以下を追加しました。</p>
+<pre><code class="language-bash"># — 省略 —
+{{#deprecated}}
+    @Deprecated(message=“”){{/deprecated}}
+# — 省略 —</code></pre>
+<p>こちらも翻訳すると、</p>
+<pre><code class="language-bash"># — 省略 —
+{{#if deprecated == true}}
+    @Deprecated(message=“”){{fi deprecated == true}}
+# — 省略 —</code></pre>
+<p><code>deprecated</code>なら改行して、<code>@Deprecated(message=“”)</code>を挿入する。と宣言しています。</p>
+<h3 id="add-deprecated-in-codegenproperty">add deprecated in CodegenProperty</h3>
+<p>Commit -&gt; <a href="https://github.com/OpenAPITools/openapi-generator/pull/5090/commits/73e2ef348bc9fca2dda632b70e5507d9746c8a99">Add deprecated annotation in kotlin-spring by yutaka0m · Pull Request #5090 · OpenAPITools/openapi-generator · GitHub</a></p>
+<p>テンプレートの修正が終わったので、<a href="https://github.com/OpenAPITools/openapi-generator/tree/master/modules/openapi-generator/src/main/java/org/openapitools/codegen">codegen</a>側の修正をします。</p>
+<p>今回追加するのは、OpenAPIでいうと<code>properties</code>配下の<code>deprecated</code>です。</p>
+<pre><code class="language-yaml">properties:
+  customerCode:
+    type: string
+    example: ‘0001’
+  customerFirstName:
+    type: string
+    example: ‘first’
+    # ↓を拾いたい
+    deprecated: true</code></pre>
+<p><code>properties</code>で宣言した値は、<a href="https://github.com/OpenAPITools/openapi-generator/blob/master/modules/openapi-generator/src/main/java/org/openapitools/codegen/CodegenProperty.java">CodegenProperty.java</a>で保持しています。</p>
+<p>deprecatedをboolean値として宣言し、テンプレートに追加して欲しいので、以下を追記しました。</p>
+<pre><code class="language-java">public boolean deprecated;</code></pre>
+<p>さらに、そのほかの関数と同じように<code>public boolean equals</code>と<code>public int hashCode()</code>に<code>deprecated</code>を追加しておきます。</p>
+<h3 id="format-column-limit-100">format (Column limit: 100)</h3>
+<p>Commit -&gt; <a href="https://github.com/OpenAPITools/openapi-generator/pull/5090/commits/663606ab9fc8570c665bea4d6daeb74cd21ccbf3">https://github.com/OpenAPITools/openapi-generator/pull/5090/commits/663606ab9fc8570c665bea4d6daeb74cd21ccbf3</a></p>
+<p>修正の結果、行が長くなったのでフォーマットをかけました。</p>
+<p>変更箇所が分かりにくくなるので、1つ前のコミットとはあえて分けました。</p>
+<h3 id="set-propertydeprecated">set property.deprecated</h3>
+<p>commit -&gt; <a href="https://github.com/OpenAPITools/openapi-generator/pull/5090/commits/4ea8d3920057a7213e06c1dae1b04414cbf24ec9">https://github.com/OpenAPITools/openapi-generator/pull/5090/commits/4ea8d3920057a7213e06c1dae1b04414cbf24ec9</a></p>
+<p><a href="https://github.com/OpenAPITools/openapi-generator/blob/master/modules/openapi-generator/src/main/java/org/openapitools/codegen/CodegenProperty.java">CodegenProperty.java</a>に<code>deprecated</code>を追加しましたが、<code>CodegenProperty</code>のインスタンス生成時に<code>deprecated</code>へ値を挿入するコードを書いていないので、今は常にnullになります。</p>
+<p>そこで、<a href="https://github.com/OpenAPITools/openapi-generator/blob/master/modules/openapi-generator/src/main/java/org/openapitools/codegen/DefaultCodegen.java">DefaultCodegen.java</a> に追記します。</p>
+<pre><code class="language-java">public CodegenProperty fromProperty(String name, Schema p) {
+// 省略…
+    CodegenProperty property = CodegenModelFactory.newInstance(CodegenModelType.PROPERTY);
+// 以下を追記
+    if (p.getDeprecated() != null) {
+        property.deprecated = p.getDeprecated();
+    }
+// …</code></pre>
+<p>OpenAPIのYAMLをマッピングした結果が<code>Schema p</code>に入っているので、その値を<code>CodegenProperty</code>の<code>deprecated</code>に代入します。</p>
+<p>（<strong>NullPointerException</strong>になるので、先にnullチェックをするのを忘れずに）</p>
+<h3 id="add-test">add test</h3>
+<p>Commit -&gt; <a href="https://github.com/OpenAPITools/openapi-generator/pull/5090/commits/1463af52ee148fef67d1f8ab5b23be6847dc89e1">Add deprecated annotation in kotlin-spring by yutaka0m · Pull Request #5090 · OpenAPITools/openapi-generator · GitHub</a></p>
+<p>実装は終わったので、テストを追記します。</p>
+<p>テストするためのOpenAPIのYAMLファイルがない場合は、好きに作成してOKです。</p>
+<p><code>testDeprecatedProperty</code>は<code>CodegenProperty</code>に<code>deprecated</code>が正しく渡っているかをテストしています。</p>
+<h3 id="run-binkotlin-springboot-petstore-allsh">run ./bin/kotlin-springboot-petstore-all.sh</h3>
+<p>Commit -&gt; <a href="https://github.com/OpenAPITools/openapi-generator/pull/5090/commits/5adbdcdf89b9d50069741b97c0347f7c8ce8e3a2">Add deprecated annotation in kotlin-spring by yutaka0m · Pull Request #5090 · OpenAPITools/openapi-generator · GitHub</a></p>
+<p>PRを出す準備です。</p>
+<p><a href="https://github.com/OpenAPITools/openapi-generator/blob/master/.github/PULL_REQUEST_TEMPLATE.md">PR checklist</a>に記述されているように、<code>./bin/{LANG}-petstore.sh</code>を実行してコミットします。</p>
+<h2 id="その他">その他</h2>
+<p>以上、ざっとですがPRのコミットログをたどっていきました。少しでも参考になれば幸いです。</p>]]></content>
+  </entry>
+  <entry>
+    <title>Kotlinコーディング規約</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/entry/2020/01/25/13/</id>
+    <updated>2020-01-25T08:30:22Z</updated>
+    <published>2020-01-25T08:30:22Z</published>
+    <content type="html"><![CDATA[<p><img src="https://resources.yutaka0m.com/20200130164802.jpg" alt=""></p>
+<p>この記事は <a href="http://kotlinlang.org/">http://kotlinlang.org/</a> の<a href="https://kotlinlang.org/docs/reference/coding-conventions.html">Coding Conventions</a>を日本語に翻訳したものです。<br>
+原文は2020年1月2日時点のものを参照しています。</p>
+<p><a href="http://kotlinlang.org/">http://kotlinlang.org/</a> は <a href="https://github.com/JetBrains/kotlin-web-site/blob/master/LICENSE">Apache License 2.0</a>です。<br>
+<a href="https://github.com/JetBrains/kotlin-web-site/blob/master/pages/contribute.md#translations">GitHub</a>には「母国語に翻訳してWebに公開してよい」と記載されています。</p>
+<h2 id="span-idiコーディング規約span"><span id="i">コーディング規約</span></h2>
+<p>このページでは、Kotlinのための一般的なコーディングスタイルについて紹介します。</p>
+<ul>
+<li>ソースコードの構成</li>
+<li>命名規則</li>
+<li>フォーマット</li>
+<li>ドキュメントコメント</li>
+<li>冗長な構造の回避</li>
+<li>Kotlinらしい書き方</li>
+<li>ライブラリでのコーディング規約</li>
+</ul>
+<h3 id="span-idi-2スタイルガイドを適用するspan"><span id="i-2">スタイルガイドを適用する</span></h3>
+<p>このスタイルガイドと一致するをIntelliJのフォーマッターを設定するには、Kotlin pluginのバージョン1.2.20以降をインストール。<strong>Settings</strong> -&gt; <strong>Editor</strong> -&gt; <strong>Code Style</strong> -&gt; <strong>Kotlin</strong>で、上部右端の**Set from…**をクリック。<strong>Predefined style</strong> -&gt; <strong>Kotlin style guide</strong>をメニューから選択します。</p>
+<p>コードがスタイルガイドに剃ってフォーマットされていることを確認できます。そのためには、<strong>Kotlin</strong>-&gt;<strong>Style issues</strong>-&gt;<strong>File is not formatted according to project settings</strong>を有効にします。</p>
+<p>スタイルガイドに他の問題（命名規則など）を検討する追加のインスペクションはデフォルトで有効になっています。</p>
+<h2 id="span-idi-3ソースコードの構成span"><span id="i-3">ソースコードの構成</span></h2>
+<h3 id="span-idi-4ディレクトリ構造span"><span id="i-4">ディレクトリ構造</span></h3>
+<p>純粋なKotlinプロジェクトでは、推奨されるディレクトリ構造は共通ルートパッケージが省略したパッケージ構造に従います。たとえば、プロジェクト内のすべてのコードが<code>org.example.kotlin</code>パッケージとそのサブパッケージである場合。<code>org.example.kotlin</code>パッケージを持つファイルは、ソースルート配下におかなければいけません。そして<code>org.example.kotlin.network.socket</code>のファイルはソースルートの<code>network/socket</code>サブディレクトリにある必要があります。</p>
+<blockquote>
+<p><strong><em>JVMにおいて</em></strong>: KotlinがJavaと一緒に使用されるプロジェクトにおいては、Kotlinのソースファイルは、Javaソースファイルと同じソースルートに存在する必要があり、同じディレクトリ構造に従います（それぞれのファイルは、各パッケージ文に対応するディレクトリ内に存在する必要があります。）</p>
+</blockquote>
+<h3 id="span-idi-5ソースファイル名span"><span id="i-5">ソースファイル名</span></h3>
+<p>もし、Kotlinファイルに1つのクラスだけが含まれる場合、ファイル名は<code>.kt</code>拡張子を加えたクラスメイト同じにしなければいけません。もしファイルに複数のクラスやトップレベル宣言だけの場合、ファイルの内容を説明する適切な名前をつけましょう。最初の文字が大文字のキャメルケースを使ってください（たとえば、<code>ProcessDeclarations.kt</code>）</p>
+<p>ファイル名はそのファイルの中のコードがやっていること説明する必要があります。それゆえ、&quot;Uitl”のような無意味な言葉を避けるべきです。</p>
+<h3 id="span-idi-6ソースファイル構成span"><span id="i-6">ソースファイル構成</span></h3>
+<p>宣言に意味的に密接な関係があって、ファイルサイズが適切な範囲内（数百行を超えない）である限り、同一のKotlinソースファイル内に複数の宣言を配置することは推奨されます。</p>
+<p>とくに、あるクラスのすべてのクライアントに関連する拡張関数を定義するとき、クラス自体が定義されているファイルと同じところに書きます。特定のクライアントに対してのみ意味のある拡張関数を定義する場合、それらをクライアントに続いて記述します。決して、&quot;Fooのすべての拡張子”を持つだけのファイルを作ってはいけない。</p>
+<h3 id="span-idi-7クラスレイアウトspan"><span id="i-7">クラスレイアウト</span></h3>
+<p>一般に、クラスの中身は、以下のような順番でソートされている。</p>
+<ul>
+<li>プロパティ宣言とinitializerブロック</li>
+<li>セカンダリーコンストラクター</li>
+<li>メソッド宣言</li>
+<li>コンパニオン　オブジェクト</li>
+</ul>
+<p>メソッドをアルファベット順や見やすさでソートしないでください、そして、普通のメソッドを拡張メソッドと分けないでください。それよりも、クラスを上から下に読んだとき、何が起きているかを理論的に追うことができるような順番にします。順序を選択し（最初に高レベルのもの、またはその逆）、それを遵守します。</p>
+<p>ネストされたクラスは、そららのクラスを使用するコードの隣に配置します。もしクラスが外部から使用されることが想定され、クラス内で参照されない場合、それは最後（コンパニオンオブジェクトの後ろ）に配置します。</p>
+<h3 id="span-idi-8インタフェース実装レイアウトspan"><span id="i-8">インタフェース実装レイアウト</span></h3>
+<p>インタフェースを実装する場合、実装メンバーをインタフェースメンバーと同じ順番にします。</p>
+<h3 id="span-idi-9オーバーロードレイアウトspan"><span id="i-9">オーバーロードレイアウト</span></h3>
+<p>常にオーバーロードを隣どうしに配置します。</p>
+<h2 id="span-idi-10命名規則span"><span id="i-10">命名規則</span></h2>
+<p>Kotlinにおけるパッケージとクラスの命名ルールはとてもシンプルです。</p>
+<ul>
+<li>
+<p>パッケージ名は常にローワーケースで、アンダースコアを使用してはいけません（<code>org.example.project</code>）。<br>
+通常、複数語の名前は推奨されませんが、複数語を使用する必要があるときは、単純にくっつけるかキャメルケースを使用します（<code>org.example.myProject</code>）。</p>
+</li>
+<li>
+<p>クラスやオブジェクト名は大文字で始めて、キャメルケースを使用します。</p>
+</li>
+</ul>
+<pre><code class="language-kotlin">open class DeclarationProcessor { /*...*/ }
+object EmptyDeclarationProcessor : DeclarationProcessor() { /*...*/ }</code></pre>
+<h3 id="span-idi-11関数名span"><span id="i-11">関数名</span></h3>
+<p>関数、プロパティ、ローカル変数の名前は小文字から始まり、キャメルケースを使って、アンダースコアは使ってはいけません。</p>
+<pre><code class="language-kotlin">fun processDeclarations() { /*...*/ }
+var declarationCount = 1</code></pre>
+<p>例外：インスタンスを生成するファクトリー関数は、作成されるクラスと同じ名前を持つことができます。</p>
+<pre><code class="language-kotlin">abstract class Foo { /*...*/ }
+class FooImpl : Foo { /*...*/ }
+fun FooImpl(): Foo { return FooImpl() }</code></pre>
+<h3 id="span-idi-12テストメソッドの名前span"><span id="i-12">テストメソッドの名前</span></h3>
+<p>テストでは、バッククォートで囲われた中では、スペースを含むメソッド名を使用することが許容されます。メソッド名にアンダースコアを使うのもテストコードでは許されます。</p>
+<pre><code class="language-kotlin">class MyTestCase {
+     @Test fun &lt;code>ensure everything works</code>() { /*...*/ }
+     @Test fun ensureEverythingWorks_onAndroid() { /*...*/ }
+}&lt;/code></pre>
+<h3 id="span-idi-13プロパティ名span"><span id="i-13">プロパティ名</span></h3>
+<p>定数名（<code>const</code>でマークされたプロパティ、またはトップレベル、またはイミュータブルなデータを保持するカスタム<code>get</code>関数がない<code>val</code>プロパティ）。 は大文字のアンダースコアで区切られた名前を使用しなくてはいけません。</p>
+<pre><code class="language-kotlin">const val MAX_COUNT = 8
+val USER_NAME_FIELD = "UserName"</code></pre>
+<p>ふるまい、または変更可能（ミュータブル）なデータを持つトップレベルかオブジェクトプロパティーの名前は、キャメルケースを使用する必要があります。</p>
+<pre><code class="language-kotlin">val mutableCollection: MutableSet&lt;String&gt; = HashSet()</code></pre>
+<p>enum定数の場合、アンダースコアで区切られた大文字（<code>enum class Color { RED, GREEN }</code>）か、大文字で始まるキャメルケースを使用できますので、用途に合わせて使ってください。</p>
+<h4 id="バッキングプロパティの名前">バッキングプロパティの名前</h4>
+<p>もしクラス内に、概念的には同じ2つのプロパティで、一方はパブリックなAPIでもう一方は実装の詳細である場合、プライベートプロパティの名前の先頭にアンダースコアをつけることできます。</p>
+<pre><code class="language-kotlin">class C {
+    private val _elementList = mutableListOf&lt;Element&gt;()
+    val elementList: List&lt;Element&gt;
+         get() = _elementList
+}</code></pre>
+<h3 id="span-idi-14よい名前を選ぶspan"><span id="i-14">よい名前を選ぶ</span></h3>
+<p>クラス名は通常クラスが何者であるかを示す名詞か名詞句です：<code>List</code>, <code>PersonReader</code>。</p>
+<p>メソッド名は通常メソッドが何をするかを述べる動詞か動詞句です:<code>close</code>, <code>readPersons</code>。また名前は、メソッドがオブジェクトを変更するか、新しいオブジェクトを返すかを示す必要があります。たとえば、<code>sort</code>はコレクションを所定の位置に並び替え、<code>sorted</code>はコレクションを並び変えたコピーを返します。</p>
+<p>名前はエンティティ（実態）の目的を明確にする必要があるので、（<code>Manager</code>, <code>Wrapper</code>）などの意味のない言葉を使用することを避けるのがベストです。</p>
+<p>宣言名の一部として頭文字を使用する場合、2文字の場合は大文字にします（<code>IOStream</code>）。それ以上の長さの場合は最初の文字だけ大文字にします（<code>XmlFormatter</code>, <code>HttpInputStream</code>）。</p>
+<h2 id="span-idi-15フォーマットspan"><span id="i-15">フォーマット</span></h2>
+<p>インデントはタブではなく、4文字のスペースを使用します。</p>
+<p>中カッコは、構造を開始する行の終わりに開き中かっこを配置します。閉じかっこは、かっこの開始行と同じ縦ラインに記述します。</p>
+<pre><code class="language-kotlin">if (elements != null) {
+    for (element in elements) {
+        // ...
+    }
+}</code></pre>
+<h3 id="span-idi-16水平の空白span"><span id="i-16">水平の空白</span></h3>
+<p>2項演算子のまわりにはスペースを配置します（<code>a + b</code>）。例外：&quot;range to&quot;演算子のまわりにはスペースを入れないでください（<code>0..i</code>）。</p>
+<p>単項演算子のまわりにはスペースを入れないでください（<code>a++</code>）。</p>
+<p>制御フローキーワード（<code>if</code>, <code>when</code>, <code>for</code>, <code>while</code>）の間にスペースと、対応する開きかっこを配置します。</p>
+<p>プライマリコンストラクター宣言、メソッド宣言、メソッド呼び出しの前開きかっこの前にスペースを入れないでください。</p>
+<pre><code class="language-kotlin">class A(val x: Int)
+fun foo(x: Int) { ... }
+fun bar() {
+    foo(1)
+}</code></pre>
+<p><code>(</code>, <code>[</code>の後ろ、または<code>)</code>, <code>]</code>の前にスペースを入れないでください。</p>
+<p><code>.</code>または<code>?.</code>のまわりにスペースを入れないでください（<code>foo.bar().filter { it &gt; 2 }.joinToString()</code>, <code>foo?.bar()</code>）。</p>
+<p><code>//</code>の後ろにスペースを配置します（<code>// This is a comment</code>）。</p>
+<p>型パラメーターを指定するために使う、角かっこのまわりにスペースを入れないでください<code>class Map&lt;K, V&gt; { ... }</code>。</p>
+<p><code>::</code>のまわりにスペースを入れないでください（<code>Foo::class</code>, <code>String::length</code>）。</p>
+<p>null許容な型を作るときに使われる<code>?</code>の前にスペースを入れないでください（<code>String?</code>）。</p>
+<p>原則として、あらゆる種類の水平方向の配置を避けてください。</p>
+<h3 id="span-idi-17コロンspan"><span id="i-17">コロン</span></h3>
+<p>以下のようなケースでは<code>:</code>の前にスペースを配置します。</p>
+<ul>
+<li>型とスーパータイプを分けるために使用される場合</li>
+<li>スーパークラスコンストラクターまたは同じクラスの異なるコンストラクターに委任する場合</li>
+<li><code>object</code>キーワードのあと</li>
+</ul>
+<p>宣言とその型を区切る時に、前にスペースを入れないでください。</p>
+<p><code>:</code>の後ろには常にスペースを入れてください。</p>
+<pre><code class="language-kotlin">abstract class Foo&lt;out T : Any&gt; : IFoo {
+    abstract fun foo(a: Int): T
+}
+class FooImpl : Foo() {
+    constructor(x: String) : this(x) { /*...*/ }
+    val x = object : IFoo { /*...*/ }
+}</code></pre>
+<h3 id="span-idi-18クラスヘッダーのフォーマットspan"><span id="i-18">クラスヘッダーのフォーマット</span></h3>
+<p>いくつかのプライマリコンストラクター変数を持つクラスは、一行で記述できます。</p>
+<pre><code class="language-kotlin">class Person(id: Int, name: String)</code></pre>
+<p>長いヘッダーを持つクラスは、それぞれのプライマリコンストラクター変数をインデントつきの別の行としてフォーマットしてください。また閉じかっこも新しい行にしてください。もし継承を使う場合、スーパークラスの呼び出し、または実装されたインタフェースのリストは、かっこと同じ行にしてください。</p>
+<pre><code class="language-kotlin">class Person(
+    id: Int,
+    name: String,
+    surname: String
+) : Human(id, name) { /*...*/ }</code></pre>
+<p>複数のインタフェースの場合、スーパークラスコンストラクターの呼び出しを最初に記述して、次の行にそれぞれのインタフェースを配置しなければいけません。</p>
+<pre><code class="language-kotlin">class Person(
+    id: Int,
+    name: String,
+    surname: String
+) : Human(id, name),
+    KotlinMaker { /*...*/ }</code></pre>
+<p>長いスーパータイプを持つクラスの場合、コロンの後に改行を入れ、すべてのスーパータイプ名を水平に揃えます。</p>
+<pre><code class="language-kotlin">class MyFavouriteVeryLongClassHolder :
+    MyLongHolder&lt;MyFavouriteVeryLongClass&gt;(),
+    SomeOtherInterface,
+    AndAnotherOne {
+    fun foo() { /*...*/ }
+}</code></pre>
+<p>クラスヘッダーが長い時に、クラスヘッダーと本文を明確に分けるには、クラスヘッダーの後に空白行を入れます（上記の例のように）。または、開き中かっこを別の行に配置します。</p>
+<pre><code class="language-kotlin">class MyFavouriteVeryLongClassHolder :
+    MyLongHolder&lt;MyFavouriteVeryLongClass&gt;(),
+    SomeOtherInterface,
+    AndAnotherOne
+{
+    fun foo() { /*...*/ }
+}</code></pre>
+<p>コンストラクター変数には通常のインデント（4つのスペース）を使用します。</p>
+<h3 id="span-idi-19修飾子span"><span id="i-19">修飾子</span></h3>
+<p>宣言に複数の修飾子がある場合は、常に以下の順番で配置してください。</p>
+<pre><code class="language-kotlin">public / protected / private / internal
+expect / actual
+final / open / abstract / sealed / const
+external
+override
+lateinit
+tailrec
+vararg
+suspend
+inner
+enum / annotation
+companion
+inline
+infix
+operator
+data</code></pre>
+<p>すべてのアノテーションは、修飾子の前にしてください。</p>
+<pre><code class="language-kotlin">@Named("Foo")
+private val foo: Foo</code></pre>
+<p>ライブラリで作業している場合をのぞき、冗長な修飾子は省略してください（e.g. <code>public</code>）。</p>
+<h3 id="span-idi-20アノテーションフォーマットspan"><span id="i-20">アノテーションフォーマット</span></h3>
+<p>アノテーションは通常、関連する宣言の前に、個別の行に置かれます。</p>
+<pre><code class="language-kotlin">@Target(AnnotationTarget.PROPERTY)
+annotation class JsonExclude</code></pre>
+<p>引数がない単一のアノテーションの場合、対応する宣言と同じ行に置けます。</p>
+<pre><code class="language-kotlin">@Test fun foo() { /*...*/ }</code></pre>
+<h3 id="span-idi-21ファイルアノテーションspan"><span id="i-21">ファイルアノテーション</span></h3>
+<p>（もしあれば）ファイルアノテーションはファイルコメントの後、<code>package</code>ステートメントの前に配置され、<code>package</code>とは空白行で区切られます。 （パッケージではなくファイルをターゲットにしているという事実を強調するために）。</p>
+<pre><code class="language-kotlin">/** License, copyright and whatever */
+@file:JvmName("FooBar")
+package foo.bar</code></pre>
+<h3 id="span-idi-22関数フォーマットspan"><span id="i-22">関数フォーマット</span></h3>
+<p>関数のシグネチャーが一行に収まらない場合、以下のような構成を使用します。</p>
+<pre><code class="language-kotlin">fun longMethodName(
+    argument: ArgumentType = defaultValue,
+    argument2: AnotherArgumentType
+): ReturnType {
+    // body
+}</code></pre>
+<p>関数の変数には通常のインデント（4つのスペース）を使用します。</p>
+<p>単一の式で構成される本体を持つ関数には、式本体を使用することが好まれます。</p>
+<pre><code class="language-kotlin">fun foo(): Int {     // bad
+    return 1
+}
+fun foo() = 1        // good</code></pre>
+<h3 id="span-idi-23式本体のフォーマットspan"><span id="i-23">式本体のフォーマット</span></h3>
+<p>式本体を持つ関数が一行で収まらない場合、一行目に<code>=</code>を配置し、式の本文を4つのスペースでインデントします。</p>
+<pre><code class="language-kotlin">fun f(x: String) =
+    x.length</code></pre>
+<h3 id="span-idi-24プロパティのフォーマットspan"><span id="i-24">プロパティのフォーマット</span></h3>
+<p>とてもシンプルな読み取り専用プロパティの場合、一行のフォーマットを検討してください。</p>
+<pre><code class="language-kotlin">val isEmpty: Boolean get() = size == 0</code></pre>
+<p>それ以上に複雑なプロパティの場合、<code>get</code>や<code>set</code>を別の行に配置します。</p>
+<pre><code class="language-kotlin">val foo: String
+    get() { /*...*/ }</code></pre>
+<p>イニシャライザーを持つプロパティを持ち、イニシャライザーが長い場合、イコールの後に改行を追加し、4つのスペースでインデントします。</p>
+<pre><code class="language-kotlin">private val defaultCharset: Charset? =
+    EncodingRegistry.getInstance().getDefaultCharsetForPropertiesFiles(file)</code></pre>
+<h3 id="span-idi-25制御フローステートメントのフォーマッットspan"><span id="i-25">制御フローステートメントのフォーマッット</span></h3>
+<p>もし<code>if</code>や<code>when</code>のステートメントの条件が複数行の場合、ステートメントの本文は中かっこで囲います。条件の後続行を、ステートメント開始に対して4つスペースでインデントします。条件の閉じかっこと開き中かっこを、別の行に配置します。</p>
+<pre><code class="language-kotlin">if (!component.isSyncing &&
+    !hasAnyKotlinRuntimeInScope(module)
+) {
+    return createKotlinNotConfiguredPanel(module)
+}</code></pre>
+<blockquote>
+<p>理由 : きちんと整列させるため、そして条件とステートメント本体との明確の分離のため</p>
+</blockquote>
+<p><code>else</code>, <code>catch</code>, <code>finall</code>キーワード、およびdo/whileループの<code>while</code>キーワードを、前の中かっこと同じ行に配置します。</p>
+<pre><code class="language-kotlin">if (condition) {
+    // body
+} else {
+    // else part
+}
+try {
+    // body
+} finally {
+    // cleanup
+}</code></pre>
+<p><code>when</code>ステートメント内では、分岐が1行以上なら、隣接したケースブロックと空白行で分離することを検討してください。</p>
+<pre><code class="language-kotlin">private fun parsePropertyValue(propName: String, token: Token) {
+    when (token) {
+        is Token.ValueToken -&gt;
+            callback.visitValue(propName, token.value)
+        Token.LBRACE -&gt; { // ...
+        }
+    }
+}</code></pre>
+<p>短い分岐をなら、中かっこなしで、条件と同じ行に配置します。</p>
+<pre><code class="language-kotlin">when (foo) {
+    true -&gt; bar() // good
+    false -&gt; { baz() } // bad
+}</code></pre>
+<h3 id="span-idi-26メソッド呼び出しのフォーマットspan"><span id="i-26">メソッド呼び出しのフォーマット</span></h3>
+<p>長い引数リストでは、開きかっこの後に空行を入れます。引数を4つのスペースでインデントします。複数の密接に関連する引数をグループ化します。</p>
+<pre><code class="language-kotlin">drawSquare(
+    x = 10, y = 10,
+    width = 100, height = 100,
+    fill = true
+)</code></pre>
+<p><code>=</code>サインのまわりにスペースを配置し、引数名と値を分離します。</p>
+<h3 id="span-idi-27チェイン呼び出しのラッピングspan"><span id="i-27">チェイン呼び出しのラッピング</span></h3>
+<p>チェイン呼び出しをラップする場合、<code>.</code>記号や<code>?.</code>演算子を単一のインデントと共に、次の行に配置します。</p>
+<pre><code class="language-kotlin">val anchor = owner
+    ?.firstChild!!
+    .siblings(forward = true)
+    .dropWhile { it is PsiComment || it is PsiWhiteSpace }</code></pre>
+<h3 id="span-idi-28ラムダフォーマットspan"><span id="i-28">ラムダフォーマット</span></h3>
+<p>ラムダ式では、中かっこの周りだけではなく、パラメーターとボディを分離するために矢印のまわりにもスペースを使用する必要があります。もし呼び出しが単一のラムダをとる場合、可能な限りかっこの外に渡す必要があります。</p>
+<pre><code class="language-kotlin">list.filter { it &gt; 10 }</code></pre>
+<p>ラムダにラベルを付与する場合、ラベルと開き中かっこの間にスペースを開けてはいけません。</p>
+<pre><code class="language-kotlin">fun foo() {
+    ints.forEach lit@{
+        // ...
+    }
+}</code></pre>
+<p>複数行のラムダで変数名を宣言する場合、最初の行に名前を置き、矢印、そして改行します。</p>
+<pre><code class="language-kotlin">appendCommaSeparated(properties) { prop -&gt;
+    val propertyValue = prop.get(obj)  // ...
+}</code></pre>
+<p>変数名のリストが長すぎて1行に収まらない場合、矢印を別の行に配置します。</p>
+<pre><code class="language-kotlin">foo {
+   context: Context,
+   environment: Env
+   -&gt;
+   context.configureEnv(environment)
+}</code></pre>
+<h2 id="span-idi-29ドキュメントコメントspan"><span id="i-29">ドキュメントコメント</span></h2>
+<p>より長いドキュメントコメントの場合は、開始の<code>/*</code>を別の行に配置し、後続の各行をアスタリスクで始めます<br>
+。</p>
+<pre><code class="language-kotlin">/**
+ * これは複数行の場合の
+ * ドキュメンテーションコメントです。
+ */</code></pre>
+<p>短いコメントは一行で配置できます。</p>
+<pre><code class="language-kotlin"> /** これは短いドキュメンテーションコメントです。 */</code></pre>
+<p>一般に、<code>@param</code>や<code>@return</code>タグの使用は避けてください。代わりに、変数の説明と返り値をドキュメントコメントに直接組み込んで、言及されている場所にリンクを追加します。<code>@param</code>や<code>@return</code>は、本文の流れにフィットしない長い説明が必要な場合だけ使用してください。</p>
+<pre><code class="language-kotlin">// Avoid doing this:
+/**
+ * Returns the absolute value of the given number.
+ * @param number The number to return the absolute value for.
+ * @return The absolute value.
+ */
+fun abs(number: Int) { /*...*/ }
+// Do this instead:
+/**
+ * Returns the absolute value of the given [number].
+ */
+fun abs(number: Int) { /*...*/ }</code></pre>
+<h2 id="span-idi-30冗長な構造の回避span"><span id="i-30">冗長な構造の回避</span></h2>
+<p>一般にKotlinの特定のシンタックス構造が任意で、IDEによって冗長として強調表現されたら、それをコードから取り除かなければいけません。「明確にするため」として不要なシンタックス要素を残さないでください。</p>
+<h3 id="span-idunitunitspan"><span id="Unit">Unit</span></h3>
+<p>関数がUnitを返す場合、返り値型を省略する必要があります。</p>
+<pre><code class="language-kotlin">fun foo() { // ": Unit" が省略されている
+}</code></pre>
+<h3 id="span-idi-31セミコロンspan"><span id="i-31">セミコロン</span></h3>
+<p>可能な限りセミコロンを省略します。</p>
+<h3 id="span-idstringstringテンプレートspan"><span id="String">Stringテンプレート</span></h3>
+<p>単純な変数を文字列テンプレートに挿入する場合は、中かっこを使用しないでください。長い式にのみ、中かっこを使用します。</p>
+<pre><code class="language-kotlin">println("$name has ${children.size} children")</code></pre>
+<h2 id="span-idkotlinkotlinらしい書き方span"><span id="Kotlin">Kotlinらしい書き方</span></h2>
+<h3 id="span-idi-32不変性span"><span id="i-32">不変性</span></h3>
+<p>可変よりも不変のデータを使用すること選びます。初期化した後に変更しない場合、ローカル変数とプロパティは常に<code>var</code>よりも<code>val</code>を使用します。変更しない場合、コレクションを宣言するときは不変なコレクションインタフェース（<code>Collection</code>, <code>List</code>, <code>Set</code>, <code>Map</code>）を常に使用します。<br>
+コレクションインスタンスを生成するためにファクトリー関数を使用する場合、可能な限り不変なコレクション型を返す関数を使用します。</p>
+<pre><code class="language-kotlin">// 悪い: 変更されない値に対して可変コレクションを使用している
+fun validateValue(actualValue: String, allowedValues: HashSet&lt;String&gt;) { ... }
+// 良い: 不変のコレクションを使用する
+fun validateValue(actualValue: String, allowedValues: Set&lt;String&gt;) { ... }
+// 悪い: arrayListOf() は ArrayList&lt;T&gt; を返す、これは可変のコレクション型です
+val allowedValues = arrayListOf("a", "b", "c")
+// 良い: listOf() は List&lt;T&gt; を返す
+val allowedValues = listOf("a", "b", "c")</code></pre>
+<h3 id="span-idi-33デフォルトのパラメーター値span"><span id="i-33">デフォルトのパラメーター値</span></h3>
+<p>オーバーロードされた関数を宣言するよりも、デフォルトパラメーターを持つ関数を宣言することをオススメします。</p>
+<pre><code class="language-kotlin">// 悪い
+fun foo() = foo("a")
+fun foo(a: String) { /*...*/ }
+// 良い
+fun foo(a: String = "a") { /*...*/ }</code></pre>
+<h3 id="span-idi-34型エイリアスspan"><span id="i-34">型エイリアス</span></h3>
+<p>関数型またはコードベースで複数回使用される型パラメーターを持つ型がある場合、その型エイリアスを定義することをオススメします。</p>
+<pre><code class="language-kotlin">typealias MouseClickHandler = (Any, MouseEvent) -&gt; Unit
+typealias PersonIndex = Map&lt;String, Person&gt;</code></pre>
+<h3 id="span-idi-35ラムダパラメーターspan"><span id="i-35">ラムダパラメーター</span></h3>
+<p>ラムダ内で、短くてネストしていない場合は、パラメーターを明示的に宣言する代わりに、<code>it</code>規則を使用することをオススメします。パラメーターを持つラムダの場合、パラメーターは明示的に宣言するべきです。</p>
+<h3 id="span-idi-36ラムダにおけるリターンspan"><span id="i-36">ラムダにおけるリターン</span></h3>
+<p>ラムダで複数のラベルつきリターンを使用しないでください。ラムダが単一の終点を持つように再構築することを検討してください。<br>
+それが不可能または十分に明確でない場合は、ラムダを匿名関数に変換することを検討してください。</p>
+<p>ラムダの最後のステートメントにラベル付きリターンを使用しないでください。</p>
+<h3 id="span-idi-37名前付き引数span"><span id="i-37">名前付き引数</span></h3>
+<p>メソッドが同じプリミティブ型の複数のパラメーターを取る場合、またはブール型のパラメーターの場合、文脈からすべてのパラメーターの意味が完全に明確でない限り、名前付き引数構文を使用します。</p>
+<h3 id="span-idi-38条件文を使用するspan"><span id="i-38">条件文を使用する</span></h3>
+<p><code>try</code>, <code>if</code>, <code>when</code>で式形式を使用することをオススメします。</p>
+<pre><code class="language-kotlin">return if (x) foo() else bar()
+return when(x) {
+    0 -&gt; "zero"
+    else -&gt; "nonzero"
+}</code></pre>
+<p>上記は、以下よりも好ましいです。</p>
+<pre><code class="language-kotlin">if (x)
+    return foo()
+else
+    return bar()
+when(x) {
+    0 -&gt; return "zero"
+    else -&gt; return "nonzero"
+}</code></pre>
+<h3 id="span-idifwhenif対whenspan"><span id="ifwhen">if対when</span></h3>
+<p>2値条件では<code>when</code>よりも<code>if</code>が好ましいです。</p>
+<pre><code class="language-kotlin">when (x) {
+    null -&gt; // ...
+    else -&gt; // ...
+}</code></pre>
+<p>よりも、<code>if (x == null) ... else ...</code>を使用します。</p>
+<p>3つ以上の選択肢がある場合は、<code>when</code>を使用します。</p>
+<h3 id="span-idnullboolean条件でnull許容なbooleanを使用するspan"><span id="nullBoolean">条件でnull許容なBooleanを使用する</span></h3>
+<p>条件式で、null許容な<code>Boolean</code>を使用する必要がある場合、<code>if (value == true)</code>または<code>if (value == false)</code>チェックを使用します。</p>
+<h3 id="span-idi-39ループを使用するspan"><span id="i-39">ループを使用する</span></h3>
+<p>ループには、（<code>filter</code>, <code>map</code>）などの高階関数を使用することを推奨します。例外：<code>forEach</code>（<code>forEach</code>のレシーバーがnull許容か、長いコールチェインの一部として使用されている場合以外は、通常の<code>for</code>ループを使用することを推奨します）。</p>
+<p>複数の高階関数とループを使った複雑な式を選択する場合、それぞれの場合に実行される操作のコストと、パフォーマンスの考慮事項に留意することを理解してください。</p>
+<h3 id="span-idi-40範囲のループspan"><span id="i-40">範囲のループ</span></h3>
+<p><code>until</code>を使って、オープン範囲でループします。</p>
+<pre><code class="language-kotlin">for (i in 0..n - 1) { /*...*/ }  // 悪い
+for (i in 0 until n) { /*...*/ }  // 悪い</code></pre>
+<h3 id="span-idstringstringを使用するspan"><span id="string">stringを使用する</span></h3>
+<p>文字列の結合よりも、文字列テンプレートを使用することを推奨します。</p>
+<p>通常の文字列リテラルに<code>\n</code>エスケープシーケンスを埋め込むよりも、複数行の文字列を使用することをオススメします。</p>
+<p>複数行の文字列でインデントを維持するため、結果の文字列が内部インデントを必要としない場合<code>trimIndent</code>を使用し、内部インデントが必要な場合は<code>trimMargin</code>を使用します。</p>
+<pre><code class="language-kotlin">assertEquals(
+    """
+    Foo
+    Bar
+    """.trimIndent(),
+    value
+)
+val a = """if(a &gt; 1) {
+          |    return a
+          |}""".trimMargin()</code></pre>
+<h3 id="span-idi-41関数かプロパティかspan"><span id="i-41">関数かプロパティか</span></h3>
+<p>いくつかのケースで、引数なしの関数は読み取り専用のプロパティに変更可能かもしれません。意味的には同じですが、どちらかを優先するかについて、いくつかのスタイル上の規則があります。</p>
+<p>以下のアルゴリズムの場合、関数よりもプロパティを優先します。</p>
+<ul>
+<li>throwしない</li>
+<li>計算コストが低い（または最初の実行でキャッシュされる）</li>
+<li>オブジェクトの状態が変わらない場合、呼び出しに対して同じ結果を返す</li>
+</ul>
+<h3 id="span-idi-42拡張関数を使用するspan"><span id="i-42">拡張関数を使用する</span></h3>
+<p>積極的に拡張関数を使用します。主にオブジェクトで機能する関数がある都度、そのオブジェクトをレシーバーとして受け入れる拡張関数にすることを検討してください。APIの汚染を再宣言にするためにも、意味のある限り拡張関数の可視性を制限します。必要の応じて、ローカル拡張関数、メンバー拡張関数、もしくはプライベート可視性のトップレベル拡張関数を使用します。</p>
+<h3 id="span-idi-43中置関数を使用するspan"><span id="i-43">中置関数を使用する</span></h3>
+<p>2つのオブジェクトが同様の役割で機能する場合、関数を中置として宣言します。良い例が<code>and</code>, <code>to</code>, <code>zip</code>。悪い例が<code>add</code>です。</p>
+<p>レシーバーオブジェクトに変化する場合は、メソッドを中置として宣言してはいけません。</p>
+<h3 id="span-idi-44ファクトリー関数span"><span id="i-44">ファクトリー関数</span></h3>
+<p>クラスのファクトリー関数を宣言する場合、クラス同じ名前を与えることを避けてください。ファクトリー関数のふるまいが特別であることを明確にするため、明確な名前をつけることを優先してください。</p>
+<p>例:</p>
+<pre><code class="language-kotlin">class Point(val x: Double, val y: Double) {
+    companion object {
+        fun fromPolar(angle: Double, radius: Double) = Point(...)
+    }
+}</code></pre>
+<p>オブジェクトが異なるスーパークラスを呼び出さない複数のオーバーロードされたコンストラクターを持つ場合。そしてデフォルト引数値を持つ単一のコンストラクターを減らせないとき、オーバーロードコンストラクターをファクトリ関数に置き換えることをオススメします。</p>
+<h3 id="span-idi-45プラットフォーム型span"><span id="i-45">プラットフォーム型</span></h3>
+<p>publicな関数やメソッドがプラットフォームの式を返す場合、それのKotlinタイプを明確に宣言しなければならない。</p>
+<pre><code class="language-kotlin">fun apiCall(): String = MyJavaApi.getProperty("name")</code></pre>
+<p>プラットフォームの式で初期化された（パッケージレベルかクラスレベルの）プロパティは、それのKotlinの型で明確に宣言しなければいけません。</p>
+<pre><code class="language-kotlin">class Person {
+    val name: String = MyJavaApi.getProperty("name")
+}</code></pre>
+<p>プラットフォーム型で初期化されたローカル値は、型宣言がある場合と、ない場合があります。</p>
+<pre><code class="language-kotlin">fun main() {
+    val name = MyJavaApi.getProperty("name")
+    println(name)
+}</code></pre>
+<h3 id="span-idi-46スコープ関数の使用span"><span id="i-46">スコープ関数の使用</span></h3>
+<p>Kotlinでは特定のオブジェクトのコンテキストでコードのブロックを実行するためのさまざまな機能を提供します。<code>let</code> ,<code>run</code>, <code>with</code>, <code>apply</code>, そして<code>also</code>。ケースに適したスコープ関数を選択するためのガイダンスについては、<a href="https://kotlinlang.org/docs/reference/scope-functions.html">スコープ関数</a>を参照してください。</p>
+<h2 id="span-idi-47ライブラリでのコーディング規約span"><span id="i-47">ライブラリでのコーディング規約</span></h2>
+<p>ライブラリを作成するときは、APIの安定性を確保するために、追加のルールセットに従うことをオススメします。</p>
+<ul>
+<li>メンバーの可視性を常に明示します（誤って宣言をpublic APIとして公開しないようにするため）</li>
+<li>常に関数の返り型と引数型を明示します（実装の変更によって偶発的に返り値型が変わることを避けるために）</li>
+<li>新しいドキュメントを必要としないオーバーライドをのぞきすべてのpublicメンバーでKDocを提供します（ライブラリのドキュメント生成をサポートするために）</li>
+</ul>]]></content>
+  </entry>
+</feed>
