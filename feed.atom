@@ -9,9 +9,78 @@
   </author>
   <icon>https://tech.yutaka0m.com/image/brand/icon-1-1.jpg</icon>
   <logo>https://tech.yutaka0m.com/image/brand/icon-2-1.jpg</logo>
-  <updated>2021-02-14T12:30:22Z</updated>
+  <updated>2021-04-24T10:11:05Z</updated>
   <link rel="self" type="application/atom+xml" href="https://tech.yutaka0m.com/feed.atom" hreflang="jp-ja"/>
   <link rel="alternate" type="text/html" href="https://tech.yutaka0m.com/" hreflang="jp-ja"/>
+  <entry>
+    <title>Lambda@EdgeとパラメータストアでBasic認証をかける</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/2021/04/23/lambda-edge-basic-auth-with-paramerer-store/</id>
+    <updated>2021-04-23T00:00:00Z</updated>
+    <published>2021-04-23T00:00:00Z</published>
+    <content type="html"><![CDATA[<p>「CloudFront + Lambda@EdgeでBasic認証をする」という実装例があります。</p>
+<ul>
+<li><a href="https://dev.classmethod.jp/articles/cloudfront-lambdaedge-basic-spa/">Amazon CloudFrontとAWS Lambda@EdgeでSPAのBasic認証をやってみる</a></li>
+<li><a href="https://xp-cloud.jp/blog/2020/08/21/7453/">CloudFront + Lambda@Edge + SecretsManagerでBasic認証</a></li>
+</ul>
+<p>今回私が実装したかったのは、</p>
+<ul>
+<li>パスワードはコードにべた書きしない</li>
+<li>パラメータストアからパスワードを取得する</li>
+<li>ランタイムはPython</li>
+</ul>
+<p>という条件でしたが、この例がインターネット上に見つからなかったので、サンプルコードを書くこととしました。</p>
+<h2 id="コード">コード</h2>
+<p>リクエストの度にパラメータストアへ値を取得しにいかないよう、<code>get_parameter</code>をハンドラの外に書いてある点がポイントです。</p>
+<p>逆にいうと、ウォームスタンバイになっている間は、パラメータストアの値を変えてもLambdaには反映されないので注意が必要です。もし、即時反映させたければ<code>get_parameter</code>をハンドラ内に書くとよいでしょう。</p>
+<p>ランタイム: <code>Python3.8</code></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-python" data-lang="python"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1</span><span style="color:#f92672">import</span> base64
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3</span><span style="color:#f92672">import</span> boto3
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6</span>ssm <span style="color:#f92672">=</span> boto3<span style="color:#f92672">.</span>client(<span style="color:#e6db74">&#34;ssm&#34;</span>, region_name<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;us-east-1&#34;</span>)
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7</span>ssm_parameter <span style="color:#f92672">=</span> ssm<span style="color:#f92672">.</span>get_parameter(
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8</span>    Name<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;basic-auth&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9</span>    WithDecryption<span style="color:#f92672">=</span>True
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10</span>)
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13</span><span style="color:#66d9ef">def</span> <span style="color:#a6e22e">lambda_handler</span>(event, context):
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14</span>    auth_id <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;admin&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15</span>    auth_password <span style="color:#f92672">=</span> ssm_parameter[<span style="color:#e6db74">&#34;Parameter&#34;</span>][<span style="color:#e6db74">&#34;Value&#34;</span>]
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16</span>    auth_string <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Basic &#34;</span> <span style="color:#f92672">+</span> base64<span style="color:#f92672">.</span>b64encode(f<span style="color:#e6db74">&#34;{auth_id}:{auth_password}&#34;</span><span style="color:#f92672">.</span>encode(<span style="color:#e6db74">&#34;utf-8&#34;</span>))<span style="color:#f92672">.</span>decode(<span style="color:#e6db74">&#34;utf-8&#34;</span>)
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18</span>    request <span style="color:#f92672">=</span> event[<span style="color:#e6db74">&#34;Records&#34;</span>][<span style="color:#ae81ff">0</span>][<span style="color:#e6db74">&#34;cf&#34;</span>][<span style="color:#e6db74">&#34;request&#34;</span>]
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19</span>    headers <span style="color:#f92672">=</span> request[<span style="color:#e6db74">&#34;headers&#34;</span>]
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21</span>    response <span style="color:#f92672">=</span> {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22</span>        <span style="color:#e6db74">&#34;status&#34;</span>: <span style="color:#e6db74">&#34;401&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23</span>        <span style="color:#e6db74">&#34;statusDescription&#34;</span>: <span style="color:#e6db74">&#34;Unauthorized&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">24</span>        <span style="color:#e6db74">&#34;body&#34;</span>: <span style="color:#e6db74">&#34;Authentication Failed&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">25</span>        <span style="color:#e6db74">&#34;headers&#34;</span>: {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">26</span>            <span style="color:#e6db74">&#34;www-authenticate&#34;</span>: [
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">27</span>                {
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">28</span>                    <span style="color:#e6db74">&#34;key&#34;</span>: <span style="color:#e6db74">&#34;WWW-Authenticate&#34;</span>,
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">29</span>                    <span style="color:#e6db74">&#34;value&#34;</span>: <span style="color:#e6db74">&#34;Basic realm=</span><span style="color:#ae81ff">\&#34;</span><span style="color:#e6db74">Basic Authentication</span><span style="color:#ae81ff">\&#34;</span><span style="color:#e6db74">&#34;</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">30</span>                }
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">31</span>            ]
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">32</span>        }
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">33</span>    }
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">34</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">35</span>    <span style="color:#75715e"># HTTPヘッダーにauthorizationがなかったらBasic認証をするように返す</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">36</span>    <span style="color:#66d9ef">if</span> headers<span style="color:#f92672">.</span>get(<span style="color:#e6db74">&#34;authorization&#34;</span>) <span style="color:#f92672">is</span> None:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">37</span>        <span style="color:#66d9ef">return</span> response
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">38</span>    <span style="color:#75715e"># Basic認証のID/パスワードが一致したら、通信を許可</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">39</span>    <span style="color:#66d9ef">if</span> headers[<span style="color:#e6db74">&#34;authorization&#34;</span>][<span style="color:#ae81ff">0</span>][<span style="color:#e6db74">&#34;value&#34;</span>] <span style="color:#f92672">==</span> auth_string:
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">40</span>        <span style="color:#66d9ef">return</span> request
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42</span>    <span style="color:#66d9ef">return</span> response
+</code></pre></div>]]></content>
+  </entry>
   <entry>
     <title>Jenkinsのパラメータ付きビルドをGitHubActionsで実現する</title>
     <author>
