@@ -9,7 +9,7 @@
   </author>
   <icon>https://tech.yutaka0m.com/image/brand/icon-1-1.jpg</icon>
   <logo>https://tech.yutaka0m.com/image/brand/icon-2-1.jpg</logo>
-  <updated>2021-04-24T10:11:05Z</updated>
+  <updated>2021-05-14T00:00:11Z</updated>
   <link rel="self" type="application/atom+xml" href="https://tech.yutaka0m.com/feed.atom" hreflang="jp-ja"/>
   <link rel="alternate" type="text/html" href="https://tech.yutaka0m.com/" hreflang="jp-ja"/>
   <entry>
@@ -80,6 +80,65 @@
 <span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">41</span>
 <span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">42</span>    <span style="color:#66d9ef">return</span> response
 </code></pre></div>]]></content>
+  </entry>
+  <entry>
+    <title>Notion APIを試してみよう</title>
+    <author>
+      <name>yutaka0m</name>
+      <uri></uri>
+    </author>
+    <id>https://tech.yutaka0m.com/2021/04/14/test-notion-api/</id>
+    <updated>2021-04-14T00:00:00Z</updated>
+    <published>2021-04-14T00:00:00Z</published>
+    <content type="html"><![CDATA[<p><a href="https://developers.notion.com/docs/getting-started">Notion API</a>が公開されましたね。
+ちょっと試してみましょう。</p>
+<h2 id="準備">準備</h2>
+<p>Notion APIを利用するには、「Token」と「Database ID」が必要なので、それらを取得します。</p>
+<p>まず、<a href="https://www.notion.so/my-integrations">https://www.notion.so/my-integrations</a> にアクセスし、「Create new integration」をクリックします。</p>
+<p><img src="./20210514083507.png" alt=""></p>
+<p>名前とworkspaceを指定して、「Submit」をクリックします。
+<img src="./20210514083622.png" alt=""></p>
+<p>Tokenが発行されるので、メモしておきます。</p>
+<p><img src="./20210514083720.png" alt=""></p>
+<p>次にNotionで新しくテーブルを作成します。
+<img src="./20210514084627.png" alt=""></p>
+<p>右上の「Share」をクリックして、「Invite」をクリックします。
+<img src="./20210514083757.png" alt=""></p>
+<p>さきほど作成した「integration」が表示されるので、選択してInviteします。
+<img src="./20210514083901.png" alt=""></p>
+<p>最後にテーブルが表示されているページで、URLの<code>?v=</code>の前がDatabase IDなので、こちらをメモしておきます。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-bash" data-lang="bash"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">1</span>https://www.notion.so/myworkspace/a8aec43384f447ed84390e8e42c2e089?v<span style="color:#f92672">=</span>...
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">2</span>                                  |--------- Database ID --------|
+</code></pre></div><h2 id="apiリクエスト">APIリクエスト</h2>
+<p>「Token」と「Database ID」の準備が完了したので、ページの作成をテストしてみます。</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:2;-o-tab-size:2;tab-size:2"><code class="language-bash" data-lang="bash"><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 1</span>export MY_NOTION_TOKEN<span style="color:#f92672">=</span>secret_xxxxx
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 2</span>export DATABASE_ID<span style="color:#f92672">=</span>a8aec43384f447ed84390e8e42c2e089
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 3</span>
+<span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 4</span>curl -X POST https://api.notion.com/v1/pages <span style="color:#ae81ff">\
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 5</span><span style="color:#ae81ff"></span>  -H <span style="color:#e6db74">&#34;Authorization: Bearer </span>$MY_NOTION_TOKEN<span style="color:#e6db74">&#34;</span> <span style="color:#ae81ff">\
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 6</span><span style="color:#ae81ff"></span>  -H <span style="color:#e6db74">&#34;Content-Type: application/json&#34;</span> <span style="color:#ae81ff">\
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 7</span><span style="color:#ae81ff"></span>  -H <span style="color:#e6db74">&#34;Notion-Version: 2021-05-13&#34;</span> <span style="color:#ae81ff">\
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 8</span><span style="color:#ae81ff"></span>	--data @- <span style="color:#e6db74">&lt;&lt;EOF
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f"> 9</span><span style="color:#e6db74">{
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">10</span><span style="color:#e6db74">  &#34;parent&#34;: { &#34;database_id&#34;: &#34;$DATABASE_ID&#34; },
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">11</span><span style="color:#e6db74">  &#34;properties&#34;: {
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">12</span><span style="color:#e6db74">    &#34;Name&#34;: {
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">13</span><span style="color:#e6db74">      &#34;title&#34;: [
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">14</span><span style="color:#e6db74">        {
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">15</span><span style="color:#e6db74">          &#34;text&#34;: {
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">16</span><span style="color:#e6db74">            &#34;content&#34;: &#34;Yurts in Big Sur, California&#34;
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">17</span><span style="color:#e6db74">          }
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">18</span><span style="color:#e6db74">        }
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">19</span><span style="color:#e6db74">      ]
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">20</span><span style="color:#e6db74">    }
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">21</span><span style="color:#e6db74">  }
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">22</span><span style="color:#e6db74">}
+</span><span style="margin-right:0.4em;padding:0 0.4em 0 0.4em;color:#7f7f7f">23</span><span style="color:#e6db74">EOF</span>
+</code></pre></div><p>リクエストすると、新しいページが作成されます。
+<img src="./20210514084352.png" alt=""></p>
+<p>他にもエンドポイントがあるので、色々と試してみたいです。</p>
+<p>API Referenceはここに書かれています。
+<a href="https://developers.notion.com/reference/intro">https://developers.notion.com/reference/intro</a></p>]]></content>
   </entry>
   <entry>
     <title>Jenkinsのパラメータ付きビルドをGitHubActionsで実現する</title>
